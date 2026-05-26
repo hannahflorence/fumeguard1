@@ -150,7 +150,8 @@ pio device monitor
 
 Use the **same** HiveMQ cluster credentials in `secrets.h` and project `.env` (see `.env.example`).
 
-**Full walkthrough (after upload):** [docs/ESP32_CONNECTION_GUIDE.md](docs/ESP32_CONNECTION_GUIDE.md)
+**Start from zero:** [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)  
+**After upload (HiveMQ):** [docs/ESP32_CONNECTION_GUIDE.md](docs/ESP32_CONNECTION_GUIDE.md)
 
 ## Production migration
 
