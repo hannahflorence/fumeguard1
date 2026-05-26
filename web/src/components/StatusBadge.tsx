@@ -15,7 +15,7 @@ const labels: Record<AirStatus, string> = {
 export function StatusBadge({ status }: { status: AirStatus }) {
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-3 py-1 text-sm font-semibold capitalize ${styles[status]}`}
+      className={`inline-flex items-center rounded-full border px-3 py-1 text-sm font-bold uppercase tracking-wide ${styles[status]}`}
     >
       {labels[status]}
     </span>

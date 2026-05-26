@@ -15,18 +15,18 @@ export function Pagination({ page, totalPages, onPageChange }: PaginationProps) 
         type="button"
         disabled={page <= 1}
         onClick={() => onPageChange(page - 1)}
-        className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+        className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm font-bold uppercase tracking-wide text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
       >
         Previous
       </button>
-      <span className="text-sm font-medium text-slate-700">
-        Page {page} of {totalPages}
+      <span className="text-sm font-bold uppercase tracking-wide text-slate-700">
+        Page {page} Of {totalPages}
       </span>
       <button
         type="button"
         disabled={page >= totalPages}
         onClick={() => onPageChange(page + 1)}
-        className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+        className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm font-bold uppercase tracking-wide text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
       >
         Next
       </button>

@@ -36,15 +36,17 @@ export function TrendCharts({ history }: { history: HistoryPoint[] }) {
 
   if (chartData.length === 0) {
     return (
-      <Card className="p-8 text-center font-medium text-slate-700">
-        Waiting for sensor history…
+      <Card className="p-8 text-center font-bold uppercase tracking-wide text-slate-700">
+        Waiting For Sensor History…
       </Card>
     );
   }
 
   return (
     <Card className="p-4 sm:p-5">
-      <h3 className="mb-4 text-lg font-bold text-slate-950">Real-time trends</h3>
+      <h3 className="mb-4 text-lg font-bold uppercase tracking-wide text-slate-950">
+        Real-Time Trends
+      </h3>
       <div className="h-[220px] w-full sm:h-[280px]">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData}>

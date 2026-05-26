@@ -69,7 +69,7 @@ function StatusIndicator({
 }) {
   return (
     <div
-      className={`card-highlight-sm flex flex-col items-center justify-center rounded-lg border px-1.5 py-2 text-center transition-colors ${className} ${
+      className={`card-highlight-sm flex flex-col items-center justify-center rounded-lg border px-1.5 py-2 text-center uppercase tracking-wide transition-colors ${className} ${
         unknown ? "opacity-60" : ""
       } ${active ? "font-bold" : "font-semibold"}`}
       aria-current={active ? "true" : undefined}
@@ -85,11 +85,11 @@ function FanIndicator({ on, unknown }: { on: boolean; unknown: boolean }) {
 
   return (
     <div
-      className={`card-highlight-sm flex flex-col items-center justify-center gap-1 rounded-lg border px-1.5 py-2 text-center transition-colors ${className} ${
+      className={`card-highlight-sm flex flex-col items-center justify-center gap-1 rounded-lg border px-1.5 py-2 text-center uppercase tracking-wide transition-colors ${className} ${
         unknown ? "opacity-60" : ""
       } ${active ? "font-bold" : "font-semibold"}`}
     >
-      <span className="text-[10px] leading-tight sm:text-xs">Exhaust fan</span>
+      <span className="text-[10px] leading-tight sm:text-xs">Exhaust Fan</span>
       <span
         className={`rounded-full px-2 py-0.5 text-[10px] font-bold leading-none sm:text-xs ${
           unknown
@@ -99,7 +99,7 @@ function FanIndicator({ on, unknown }: { on: boolean; unknown: boolean }) {
               : "bg-slate-200 text-slate-700"
         }`}
       >
-        {unknown ? "—" : on ? "ON" : "OFF"}
+        {unknown ? "—" : on ? "On" : "Off"}
       </span>
     </div>
   );

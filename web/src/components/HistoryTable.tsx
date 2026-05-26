@@ -8,8 +8,8 @@ function formatTs(ts: number) {
 export function HistoryTable({ rows }: { rows: HistoryPoint[] }) {
   if (rows.length === 0) {
     return (
-      <p className="p-6 text-center text-sm font-medium text-slate-600">
-        No history for selected filters.
+      <p className="p-6 text-center text-sm font-bold uppercase tracking-wide text-slate-600">
+        No History For Selected Filters
       </p>
     );
   }
@@ -19,12 +19,12 @@ export function HistoryTable({ rows }: { rows: HistoryPoint[] }) {
       <table className="w-full min-w-[36rem] text-left text-sm">
         <thead>
           <tr className="border-b border-slate-100 text-slate-700">
-            <th className="px-4 py-3 font-semibold">Timestamp</th>
-            <th className="px-4 py-3 font-semibold">Gas (ppm)</th>
-            <th className="px-4 py-3 font-semibold">Dust (µg/m³)</th>
-            <th className="px-4 py-3 font-semibold">CEI</th>
-            <th className="px-4 py-3 font-semibold">Status</th>
-            <th className="px-4 py-3 font-semibold">Fan</th>
+            <th className="px-4 py-3 font-bold uppercase tracking-wide">Timestamp</th>
+            <th className="px-4 py-3 font-bold uppercase tracking-wide">Gas (ppm)</th>
+            <th className="px-4 py-3 font-bold uppercase tracking-wide">Dust (µg/m³)</th>
+            <th className="px-4 py-3 font-bold uppercase tracking-wide">CEI</th>
+            <th className="px-4 py-3 font-bold uppercase tracking-wide">Status</th>
+            <th className="px-4 py-3 font-bold uppercase tracking-wide">Fan</th>
           </tr>
         </thead>
         <tbody>
@@ -37,7 +37,9 @@ export function HistoryTable({ rows }: { rows: HistoryPoint[] }) {
               <td className="px-4 py-2">
                 <StatusBadge status={row.status} />
               </td>
-              <td className="px-4 py-2 font-medium text-slate-900">{row.fanOn ? "On" : "Off"}</td>
+              <td className="px-4 py-2 font-bold uppercase tracking-wide text-slate-900">
+                {row.fanOn ? "On" : "Off"}
+              </td>
             </tr>
           ))}
         </tbody>

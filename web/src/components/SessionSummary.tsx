@@ -36,20 +36,26 @@ export function SessionSummary({
   }));
 
   if (loading) {
-    return <div className="font-medium text-slate-700">Loading sessions…</div>;
+    return (
+      <div className="font-bold uppercase tracking-wide text-slate-700">
+        Loading Sessions…
+      </div>
+    );
   }
 
   if (chartData.length === 0) {
     return (
-      <Card className="p-6 font-medium text-slate-700">
-        No completed sessions yet. Start soldering to record exposure.
+      <Card className="p-6 font-bold uppercase tracking-wide text-slate-700">
+        No Completed Sessions Yet. Start Soldering To Record Exposure.
       </Card>
     );
   }
 
   return (
     <Card className="p-4 sm:p-5">
-      <h3 className="mb-4 text-lg font-bold text-slate-950">Session exposure (CEI)</h3>
+      <h3 className="mb-4 text-lg font-bold uppercase tracking-wide text-slate-950">
+        Session Exposure (CEI)
+      </h3>
       <div className="h-[200px] w-full sm:h-[220px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData}>
