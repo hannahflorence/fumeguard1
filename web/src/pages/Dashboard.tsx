@@ -79,7 +79,7 @@ export function Dashboard() {
         <p className="font-medium text-slate-700">Connecting to live data…</p>
       )}
 
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid grid-cols-1 gap-4 overflow-visible sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           label="Gas (MQ-135)"
           value={latest ? latest.gasPpm.toFixed(1) : "—"}
@@ -110,7 +110,7 @@ export function Dashboard() {
 
       <SessionSummary sessions={sessions} loading={sessionsLoading} />
 
-      <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <section className="grid grid-cols-1 gap-6 overflow-visible lg:grid-cols-2">
         <Card className="flex flex-col">
           <h3 className="border-b border-slate-100 p-4 text-lg font-bold text-slate-950">
             Recent events
