@@ -41,6 +41,28 @@ You do **not** need Docker/Mosquitto when using HiveMQ.
 
 ---
 
+## Upload troubleshooting (Windows / COM5)
+
+If upload fails with **`Failed to connect to ESP32: No serial data received`**:
+
+1. **Close Serial Monitor** and any app using COM5 (Arduino IDE, PuTTY, another terminal).
+2. In **Device Manager** → **Ports (COM & LPT)**, confirm **USB-SERIAL CH340** or **Silicon Labs CP210x** shows **COM5** when the board is plugged in. If the port is missing, install the [CP210x driver](https://www.silabs.com/developers/usb-to-uart-bridge-vcp-drivers).
+3. Use a **data** USB cable (not charge-only) and a **direct** USB port on the PC (avoid hubs if possible).
+4. In `firmware/platformio.ini`, `upload_port` / `monitor_port` must match Device Manager (e.g. `COM5`).
+5. **Try auto-upload first** (default `esp32dev` env): close Serial Monitor → click **Upload** → **do not press any buttons**. Many DevKit boards reset into bootloader via USB (CP210x DTR/RTS).
+
+6. **If that fails — manual entry (different from “hold BOOT while Connecting”)**:
+   - In PlatformIO, pick environment **`esp32dev_manual`** (status bar or `platformio.ini`).
+   - **Hold BOOT** (IO0 / FLASH).
+   - **Tap EN** (RST) once and release **EN** (keep holding BOOT).
+   - **Release BOOT**.
+   - Within **2 seconds**, click **Upload** (do not hold BOOT during `Connecting....`).
+   - Repeat if needed: BOOT → EN tap → release BOOT → Upload immediately.
+
+7. **Still stuck**: different USB cable (data, not charge-only), direct PC port (no hub), replug USB, confirm only **COM5** appears when the board is connected. A photo of the board (USB side) helps identify BOOT vs EN.
+
+---
+
 ## Step 1 — Create and configure HiveMQ Cloud
 
 1. Sign in at [console.hivemq.cloud](https://console.hivemq.cloud).
