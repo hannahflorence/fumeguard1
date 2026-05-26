@@ -1,8 +1,7 @@
 import type { ReactNode } from "react";
 
-/** Soft floating card shadow (reference: material-style elevation on white) */
-export const cardClassName =
-  "rounded-xl bg-white shadow-[0_4px_15px_rgba(0,0,0,0.1)]";
+/** Gradient-highlighted card with hover bounce (see index.css `.card-highlight`) */
+export const cardClassName = "card-highlight";
 
 export function Card({
   children,

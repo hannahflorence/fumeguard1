@@ -40,7 +40,7 @@ function Actuator({
   activeClass?: string;
 }) {
   return (
-    <div className="flex min-w-0 items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 shadow-[0_2px_8px_rgba(0,0,0,0.06)] sm:min-w-[7.5rem]">
+    <div className="card-highlight-sm flex min-w-0 items-center justify-between gap-2 px-3 py-2 sm:min-w-[7.5rem]">
       <span className="text-xs text-slate-600">{label}</span>
       <span
         className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${

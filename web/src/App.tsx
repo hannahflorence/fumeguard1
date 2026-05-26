@@ -4,7 +4,7 @@ import { Dashboard } from "./pages/Dashboard";
 function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-white">
-      <nav className="border-b border-slate-200 bg-white px-4 py-3 shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
+      <nav className="border-b border-slate-200 bg-white px-4 py-3 shadow-[0_2px_10px_rgba(255,143,184,0.12)]">
         <div className="mx-auto max-w-7xl">
           <Link to="/" className="font-semibold text-sky-600 hover:text-sky-700">
             FumeGuard
