@@ -18,6 +18,11 @@ const statusStyles: Record<
   },
 };
 
+const fanStyles = {
+  on: "border-sky-500 bg-sky-500 text-white shadow-[0_2px_10px_rgba(14,165,233,0.35)]",
+  off: "border-slate-200 bg-white text-slate-500",
+};
+
 const statusLabels: Record<AirStatus, string> = {
   safe: "Safe",
   warning: "Warning",
@@ -29,6 +34,7 @@ const statusOrder: AirStatus[] = ["safe", "warning", "hazardous"];
 export function SystemStatus({ latest }: { latest: LatestReading | null }) {
   const current = latest?.status;
   const unknown = !latest;
+  const fanOn = latest?.fanOn ?? false;
 
   return (
     <div className="inline-grid w-full grid-cols-4 gap-1.5">
@@ -45,7 +51,7 @@ export function SystemStatus({ latest }: { latest: LatestReading | null }) {
           unknown={unknown}
         />
       ))}
-      <FanIndicator on={latest?.fanOn ?? false} unknown={unknown} />
+      <FanIndicator on={fanOn} unknown={unknown} />
     </div>
   );
 }
@@ -74,18 +80,25 @@ function StatusIndicator({
 }
 
 function FanIndicator({ on, unknown }: { on: boolean; unknown: boolean }) {
+  const active = !unknown && on;
+  const className = unknown ? fanStyles.off : on ? fanStyles.on : fanStyles.off;
+
   return (
     <div
-      className={`card-highlight-sm flex flex-col items-center justify-center rounded-lg border px-1.5 py-2 text-center transition-colors ${
-        unknown
-          ? "border-slate-200 bg-white text-slate-500 opacity-60"
-          : on
-            ? "border-sky-500 bg-sky-500 font-bold text-white shadow-[0_2px_10px_rgba(14,165,233,0.35)]"
-            : "border-slate-200 bg-white font-semibold text-slate-600"
-      }`}
+      className={`card-highlight-sm flex flex-col items-center justify-center gap-1 rounded-lg border px-1.5 py-2 text-center transition-colors ${className} ${
+        unknown ? "opacity-60" : ""
+      } ${active ? "font-bold" : "font-semibold"}`}
     >
       <span className="text-[10px] leading-tight sm:text-xs">Exhaust fan</span>
-      <span className="mt-0.5 text-[10px] font-bold leading-none sm:text-xs">
+      <span
+        className={`rounded-full px-2 py-0.5 text-[10px] font-bold leading-none sm:text-xs ${
+          unknown
+            ? "bg-slate-200 text-slate-600"
+            : on
+              ? "bg-white/25 text-white"
+              : "bg-slate-200 text-slate-700"
+        }`}
+      >
         {unknown ? "—" : on ? "ON" : "OFF"}
       </span>
     </div>
