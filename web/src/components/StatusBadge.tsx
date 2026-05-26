@@ -1,9 +1,9 @@
 import type { AirStatus } from "@fumeguard/shared";
 
 const styles: Record<AirStatus, string> = {
-  safe: "bg-emerald-500/20 text-emerald-400 border-emerald-500/40",
-  warning: "bg-amber-500/20 text-amber-400 border-amber-500/40",
-  hazardous: "bg-red-500/20 text-red-400 border-red-500/40",
+  safe: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  warning: "bg-amber-100 text-amber-700 border-amber-200",
+  hazardous: "bg-red-100 text-red-700 border-red-200",
 };
 
 const labels: Record<AirStatus, string> = {

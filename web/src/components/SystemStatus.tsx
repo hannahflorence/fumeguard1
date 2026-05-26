@@ -4,25 +4,25 @@ export function SystemStatus({ latest }: { latest: LatestReading | null }) {
   const status = latest?.status;
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="grid grid-cols-1 gap-2 min-[480px]:grid-cols-2 sm:flex sm:flex-wrap">
       <Actuator label="Exhaust fan" on={latest?.fanOn ?? false} unknown={!latest} />
       <Actuator
         label="Green LED"
         on={status === "safe"}
         unknown={!latest}
-        activeClass="bg-emerald-500/20 text-emerald-400"
+        activeClass="bg-emerald-100 text-emerald-700"
       />
       <Actuator
         label="Yellow LED"
         on={status === "warning"}
         unknown={!latest}
-        activeClass="bg-amber-500/20 text-amber-400"
+        activeClass="bg-amber-100 text-amber-700"
       />
       <Actuator
         label="Red LED"
         on={status === "hazardous"}
         unknown={!latest}
-        activeClass="bg-red-500/20 text-red-400"
+        activeClass="bg-red-100 text-red-700"
       />
     </div>
   );
@@ -32,7 +32,7 @@ function Actuator({
   label,
   on,
   unknown,
-  activeClass = "bg-emerald-500/20 text-emerald-400",
+  activeClass = "bg-emerald-100 text-emerald-700",
 }: {
   label: string;
   on: boolean;
@@ -40,11 +40,11 @@ function Actuator({
   activeClass?: string;
 }) {
   return (
-    <div className="flex min-w-[7.5rem] items-center justify-between gap-2 rounded-lg border border-slate-700/80 bg-slate-800/50 px-3 py-2">
-      <span className="text-xs text-slate-300">{label}</span>
+    <div className="flex min-w-0 items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 shadow-[0_2px_8px_rgba(0,0,0,0.06)] sm:min-w-[7.5rem]">
+      <span className="text-xs text-slate-600">{label}</span>
       <span
-        className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-          unknown ? "bg-slate-700 text-slate-400" : on ? activeClass : "bg-slate-700 text-slate-400"
+        className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${
+          unknown ? "bg-slate-200 text-slate-500" : on ? activeClass : "bg-slate-200 text-slate-500"
         }`}
       >
         {unknown ? "—" : on ? "ON" : "OFF"}

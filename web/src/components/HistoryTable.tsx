@@ -14,9 +14,9 @@ export function HistoryTable({ rows }: { rows: HistoryPoint[] }) {
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-left text-sm">
+      <table className="w-full min-w-[36rem] text-left text-sm">
         <thead>
-          <tr className="border-b border-slate-700 text-slate-400">
+          <tr className="border-b border-slate-100 text-slate-500">
             <th className="px-4 py-3 font-medium">Timestamp</th>
             <th className="px-4 py-3 font-medium">Gas (ppm)</th>
             <th className="px-4 py-3 font-medium">Dust (µg/m³)</th>
@@ -27,15 +27,15 @@ export function HistoryTable({ rows }: { rows: HistoryPoint[] }) {
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.id} className="border-b border-slate-800/80 hover:bg-slate-800/40">
-              <td className="px-4 py-2 text-slate-300">{formatTs(row.ts)}</td>
-              <td className="px-4 py-2">{row.gasPpm.toFixed(1)}</td>
-              <td className="px-4 py-2">{row.dustUgM3.toFixed(1)}</td>
-              <td className="px-4 py-2">{row.cei.toFixed(1)}</td>
+            <tr key={row.id} className="border-b border-slate-50 hover:bg-slate-50/80">
+              <td className="px-4 py-2 text-slate-600">{formatTs(row.ts)}</td>
+              <td className="px-4 py-2 text-slate-800">{row.gasPpm.toFixed(1)}</td>
+              <td className="px-4 py-2 text-slate-800">{row.dustUgM3.toFixed(1)}</td>
+              <td className="px-4 py-2 text-slate-800">{row.cei.toFixed(1)}</td>
               <td className="px-4 py-2">
                 <StatusBadge status={row.status} />
               </td>
-              <td className="px-4 py-2">{row.fanOn ? "On" : "Off"}</td>
+              <td className="px-4 py-2 text-slate-800">{row.fanOn ? "On" : "Off"}</td>
             </tr>
           ))}
         </tbody>

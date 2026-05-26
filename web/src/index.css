@@ -5,11 +5,9 @@
   --color-safe: #22c55e;
   --color-warning: #f59e0b;
   --color-hazard: #ef4444;
-  --color-surface: #0f172a;
-  --color-panel: #1e293b;
-  --color-muted: #94a3b8;
+  --color-muted: #64748b;
 }
 
 body {
-  @apply bg-slate-950 text-slate-100 font-sans antialiased min-h-screen;
+  @apply min-h-screen bg-white font-sans text-slate-900 antialiased;
 }

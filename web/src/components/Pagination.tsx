@@ -10,23 +10,23 @@ export function Pagination({ page, totalPages, onPageChange }: PaginationProps) 
   }
 
   return (
-    <div className="flex items-center justify-between border-t border-slate-700/80 px-4 py-3">
+    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 px-4 py-3">
       <button
         type="button"
         disabled={page <= 1}
         onClick={() => onPageChange(page - 1)}
-        className="rounded-lg border border-slate-600 px-3 py-1 text-sm text-slate-300 hover:bg-slate-700/50 disabled:cursor-not-allowed disabled:opacity-40"
+        className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm text-slate-600 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
       >
         Previous
       </button>
-      <span className="text-sm text-slate-400">
+      <span className="text-sm text-slate-500">
         Page {page} of {totalPages}
       </span>
       <button
         type="button"
         disabled={page >= totalPages}
         onClick={() => onPageChange(page + 1)}
-        className="rounded-lg border border-slate-600 px-3 py-1 text-sm text-slate-300 hover:bg-slate-700/50 disabled:cursor-not-allowed disabled:opacity-40"
+        className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm text-slate-600 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
       >
         Next
       </button>

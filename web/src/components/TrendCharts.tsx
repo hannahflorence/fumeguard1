@@ -9,6 +9,7 @@ import {
   YAxis,
 } from "recharts";
 import type { HistoryPoint } from "../hooks/useRealtimeData";
+import { Card } from "./Card";
 
 function formatTime(ts: number) {
   return new Date(ts).toLocaleTimeString([], {
@@ -17,6 +18,13 @@ function formatTime(ts: number) {
     second: "2-digit",
   });
 }
+
+const tooltipStyle = {
+  background: "#ffffff",
+  border: "1px solid #e2e8f0",
+  borderRadius: 8,
+  boxShadow: "0 4px 15px rgba(0, 0, 0, 0.1)",
+};
 
 export function TrendCharts({ history }: { history: HistoryPoint[] }) {
   const chartData = history.map((h) => ({
@@ -28,33 +36,29 @@ export function TrendCharts({ history }: { history: HistoryPoint[] }) {
 
   if (chartData.length === 0) {
     return (
-      <div className="rounded-xl border border-slate-700/80 bg-slate-800/40 p-8 text-center text-slate-400">
+      <Card className="p-8 text-center text-slate-500">
         Waiting for sensor history…
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div className="rounded-xl border border-slate-700/80 bg-slate-800/40 p-4">
-      <h3 className="mb-4 text-lg font-semibold text-white">Real-time trends</h3>
-      <ResponsiveContainer width="100%" height={280}>
-        <LineChart data={chartData}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-          <XAxis dataKey="time" stroke="#94a3b8" tick={{ fontSize: 11 }} />
-          <YAxis stroke="#94a3b8" tick={{ fontSize: 11 }} />
-          <Tooltip
-            contentStyle={{
-              background: "#1e293b",
-              border: "1px solid #475569",
-              borderRadius: 8,
-            }}
-          />
-          <Legend />
-          <Line type="monotone" dataKey="gas" name="Gas (ppm)" stroke="#38bdf8" dot={false} />
-          <Line type="monotone" dataKey="dust" name="Dust (µg/m³)" stroke="#a78bfa" dot={false} />
-          <Line type="monotone" dataKey="cei" name="CEI" stroke="#f97316" dot={false} />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
+    <Card className="p-4 sm:p-5">
+      <h3 className="mb-4 text-lg font-semibold text-slate-900">Real-time trends</h3>
+      <div className="h-[220px] w-full sm:h-[280px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+            <XAxis dataKey="time" stroke="#64748b" tick={{ fontSize: 11 }} />
+            <YAxis stroke="#64748b" tick={{ fontSize: 11 }} />
+            <Tooltip contentStyle={tooltipStyle} />
+            <Legend />
+            <Line type="monotone" dataKey="gas" name="Gas (ppm)" stroke="#0284c7" dot={false} />
+            <Line type="monotone" dataKey="dust" name="Dust (µg/m³)" stroke="#7c3aed" dot={false} />
+            <Line type="monotone" dataKey="cei" name="CEI" stroke="#ea580c" dot={false} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </Card>
   );
 }

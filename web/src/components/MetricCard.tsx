@@ -1,3 +1,5 @@
+import { cardClassName } from "./Card";
+
 interface MetricCardProps {
   label: string;
   value: string;
@@ -8,15 +10,13 @@ interface MetricCardProps {
 
 export function MetricCard({ label, value, unit, sub, className }: MetricCardProps) {
   return (
-    <div
-      className={`rounded-xl border border-slate-700/80 bg-slate-800/60 p-5 shadow-lg backdrop-blur ${className ?? ""}`}
-    >
-      <p className="text-sm font-medium text-slate-400">{label}</p>
-      <p className="mt-2 text-3xl font-bold tracking-tight text-white">
+    <div className={`${cardClassName} p-5 ${className ?? ""}`}>
+      <p className="text-sm font-medium text-slate-500">{label}</p>
+      <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
         {value}
-        <span className="ml-1 text-lg font-normal text-slate-400">{unit}</span>
+        <span className="ml-1 text-lg font-normal text-slate-500">{unit}</span>
       </p>
-      {sub && <p className="mt-1 text-xs text-slate-500">{sub}</p>}
+      {sub && <p className="mt-1 text-xs text-slate-400">{sub}</p>}
     </div>
   );
 }
