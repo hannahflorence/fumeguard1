@@ -1,52 +1,91 @@
-import type { LatestReading } from "@fumeguard/shared";
+import type { AirStatus, LatestReading } from "@fumeguard/shared";
+
+const statusStyles: Record<
+  AirStatus,
+  { active: string; idle: string }
+> = {
+  safe: {
+    active: "border-emerald-500 bg-emerald-500 text-white shadow-[0_2px_10px_rgba(16,185,129,0.35)]",
+    idle: "border-slate-200 bg-white text-slate-500",
+  },
+  warning: {
+    active: "border-amber-500 bg-amber-500 text-white shadow-[0_2px_10px_rgba(245,158,11,0.35)]",
+    idle: "border-slate-200 bg-white text-slate-500",
+  },
+  hazardous: {
+    active: "border-red-500 bg-red-500 text-white shadow-[0_2px_10px_rgba(239,68,68,0.35)]",
+    idle: "border-slate-200 bg-white text-slate-500",
+  },
+};
+
+const statusLabels: Record<AirStatus, string> = {
+  safe: "Safe",
+  warning: "Warning",
+  hazardous: "Hazardous",
+};
+
+const statusOrder: AirStatus[] = ["safe", "warning", "hazardous"];
 
 export function SystemStatus({ latest }: { latest: LatestReading | null }) {
-  const status = latest?.status;
+  const current = latest?.status;
+  const unknown = !latest;
 
   return (
-    <div className="grid grid-cols-1 gap-2 min-[480px]:grid-cols-2 sm:flex sm:flex-wrap">
-      <Actuator label="Exhaust fan" on={latest?.fanOn ?? false} unknown={!latest} />
-      <Actuator
-        label="Green LED"
-        on={status === "safe"}
-        unknown={!latest}
-        activeClass="bg-emerald-100 text-emerald-700"
-      />
-      <Actuator
-        label="Yellow LED"
-        on={status === "warning"}
-        unknown={!latest}
-        activeClass="bg-amber-100 text-amber-700"
-      />
-      <Actuator
-        label="Red LED"
-        on={status === "hazardous"}
-        unknown={!latest}
-        activeClass="bg-red-100 text-red-700"
-      />
+    <div className="inline-grid w-full grid-cols-4 gap-1.5">
+      {statusOrder.map((status) => (
+        <StatusIndicator
+          key={status}
+          label={statusLabels[status]}
+          active={!unknown && current === status}
+          className={
+            !unknown && current === status
+              ? statusStyles[status].active
+              : statusStyles[status].idle
+          }
+          unknown={unknown}
+        />
+      ))}
+      <FanIndicator on={latest?.fanOn ?? false} unknown={unknown} />
     </div>
   );
 }
 
-function Actuator({
+function StatusIndicator({
   label,
-  on,
+  active,
+  className,
   unknown,
-  activeClass = "bg-emerald-100 text-emerald-700",
 }: {
   label: string;
-  on: boolean;
-  unknown?: boolean;
-  activeClass?: string;
+  active: boolean;
+  className: string;
+  unknown: boolean;
 }) {
   return (
-    <div className="card-highlight-sm flex min-w-0 items-center justify-between gap-2 px-3 py-2 sm:min-w-[7.5rem]">
-      <span className="text-xs text-slate-600">{label}</span>
-      <span
-        className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${
-          unknown ? "bg-slate-200 text-slate-500" : on ? activeClass : "bg-slate-200 text-slate-500"
-        }`}
-      >
+    <div
+      className={`card-highlight-sm flex flex-col items-center justify-center rounded-lg border px-1.5 py-2 text-center transition-colors ${className} ${
+        unknown ? "opacity-60" : ""
+      } ${active ? "font-bold" : "font-semibold"}`}
+      aria-current={active ? "true" : undefined}
+    >
+      <span className="text-[10px] leading-tight sm:text-xs">{label}</span>
+    </div>
+  );
+}
+
+function FanIndicator({ on, unknown }: { on: boolean; unknown: boolean }) {
+  return (
+    <div
+      className={`card-highlight-sm flex flex-col items-center justify-center rounded-lg border px-1.5 py-2 text-center transition-colors ${
+        unknown
+          ? "border-slate-200 bg-white text-slate-500 opacity-60"
+          : on
+            ? "border-sky-500 bg-sky-500 font-bold text-white shadow-[0_2px_10px_rgba(14,165,233,0.35)]"
+            : "border-slate-200 bg-white font-semibold text-slate-600"
+      }`}
+    >
+      <span className="text-[10px] leading-tight sm:text-xs">Exhaust fan</span>
+      <span className="mt-0.5 text-[10px] font-bold leading-none sm:text-xs">
         {unknown ? "—" : on ? "ON" : "OFF"}
       </span>
     </div>

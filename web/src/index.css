@@ -15,7 +15,7 @@
 }
 
 body {
-  @apply min-h-screen bg-white font-sans text-slate-900 antialiased;
+  @apply min-h-screen bg-white font-sans text-slate-800 antialiased;
 }
 
 /* Highlighted card: gradient-tinted glow + bounce on hover */

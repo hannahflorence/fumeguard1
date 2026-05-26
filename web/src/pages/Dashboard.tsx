@@ -50,19 +50,21 @@ export function Dashboard() {
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-              FumeGuard
+            <h1 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
+              Solder Fume Monitoring System
             </h1>
             {latest && <StatusBadge status={latest.status} />}
           </div>
-          <p className="mt-1 text-sm text-slate-500 sm:text-base">
-            Solder fume monitoring · Device{" "}
-            <code className="rounded bg-slate-100 px-1.5 py-0.5 text-sky-600">{DEVICE_ID}</code>
+          <p className="mt-1 text-sm font-medium text-slate-700 sm:text-base">
+            Device{" "}
+            <code className="rounded bg-slate-100 px-1.5 py-0.5 font-semibold text-sky-700">
+              {DEVICE_ID}
+            </code>
           </p>
         </div>
 
-        <Card className="w-full p-4 sm:max-w-xl sm:shrink-0 lg:max-w-2xl">
-          <h3 className="mb-3 text-sm font-semibold text-slate-700">System actuators</h3>
+        <Card className="w-full shrink-0 p-3 sm:w-auto">
+          <h3 className="mb-2 text-sm font-bold text-slate-900">System actuators</h3>
           <SystemStatus latest={latest} />
         </Card>
       </header>
@@ -74,7 +76,7 @@ export function Dashboard() {
       )}
 
       {loading && !latest && (
-        <p className="text-slate-500">Connecting to live data…</p>
+        <p className="font-medium text-slate-700">Connecting to live data…</p>
       )}
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -110,19 +112,19 @@ export function Dashboard() {
 
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card className="flex flex-col">
-          <h3 className="border-b border-slate-100 p-4 text-lg font-semibold text-slate-900">
+          <h3 className="border-b border-slate-100 p-4 text-lg font-bold text-slate-950">
             Recent events
           </h3>
           <ul className="min-h-[12rem] flex-1 space-y-2 p-4 text-sm">
             {pagedEvents.length === 0 && (
-              <li className="text-slate-400">No events yet</li>
+              <li className="font-medium text-slate-600">No events yet</li>
             )}
             {pagedEvents.map((e) => (
-              <li key={e.id} className="text-slate-700">
-                <span className="text-slate-400">
+              <li key={e.id} className="font-medium text-slate-800">
+                <span className="text-slate-600">
                   {new Date(e.ts).toLocaleTimeString()}{" "}
                 </span>
-                <span className="font-medium text-sky-600">{e.type}</span>: {e.message}
+                <span className="font-semibold text-sky-700">{e.type}</span>: {e.message}
               </li>
             ))}
           </ul>
@@ -135,9 +137,9 @@ export function Dashboard() {
 
         <Card className="flex flex-col">
           <div className="flex flex-col gap-4 border-b border-slate-100 p-4 sm:flex-row sm:items-end sm:justify-between">
-            <h3 className="text-lg font-semibold text-slate-900">Historical readings</h3>
+            <h3 className="text-lg font-bold text-slate-950">Historical readings</h3>
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <label className="text-sm text-slate-500">
+              <label className="text-sm font-semibold text-slate-700">
                 From
                 <input
                   type="date"
@@ -149,7 +151,7 @@ export function Dashboard() {
                   className="ml-2 rounded-lg border border-slate-200 bg-white px-2 py-1 text-slate-900 shadow-sm"
                 />
               </label>
-              <label className="text-sm text-slate-500">
+              <label className="text-sm font-semibold text-slate-700">
                 To
                 <input
                   type="date"

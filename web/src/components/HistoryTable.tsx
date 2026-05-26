@@ -8,7 +8,9 @@ function formatTs(ts: number) {
 export function HistoryTable({ rows }: { rows: HistoryPoint[] }) {
   if (rows.length === 0) {
     return (
-      <p className="p-6 text-center text-sm text-slate-400">No history for selected filters.</p>
+      <p className="p-6 text-center text-sm font-medium text-slate-600">
+        No history for selected filters.
+      </p>
     );
   }
 
@@ -16,26 +18,26 @@ export function HistoryTable({ rows }: { rows: HistoryPoint[] }) {
     <div className="overflow-x-auto">
       <table className="w-full min-w-[36rem] text-left text-sm">
         <thead>
-          <tr className="border-b border-slate-100 text-slate-500">
-            <th className="px-4 py-3 font-medium">Timestamp</th>
-            <th className="px-4 py-3 font-medium">Gas (ppm)</th>
-            <th className="px-4 py-3 font-medium">Dust (µg/m³)</th>
-            <th className="px-4 py-3 font-medium">CEI</th>
-            <th className="px-4 py-3 font-medium">Status</th>
-            <th className="px-4 py-3 font-medium">Fan</th>
+          <tr className="border-b border-slate-100 text-slate-700">
+            <th className="px-4 py-3 font-semibold">Timestamp</th>
+            <th className="px-4 py-3 font-semibold">Gas (ppm)</th>
+            <th className="px-4 py-3 font-semibold">Dust (µg/m³)</th>
+            <th className="px-4 py-3 font-semibold">CEI</th>
+            <th className="px-4 py-3 font-semibold">Status</th>
+            <th className="px-4 py-3 font-semibold">Fan</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
             <tr key={row.id} className="border-b border-slate-50 hover:bg-slate-50/80">
-              <td className="px-4 py-2 text-slate-600">{formatTs(row.ts)}</td>
-              <td className="px-4 py-2 text-slate-800">{row.gasPpm.toFixed(1)}</td>
-              <td className="px-4 py-2 text-slate-800">{row.dustUgM3.toFixed(1)}</td>
-              <td className="px-4 py-2 text-slate-800">{row.cei.toFixed(1)}</td>
+              <td className="px-4 py-2 font-medium text-slate-700">{formatTs(row.ts)}</td>
+              <td className="px-4 py-2 font-medium text-slate-900">{row.gasPpm.toFixed(1)}</td>
+              <td className="px-4 py-2 font-medium text-slate-900">{row.dustUgM3.toFixed(1)}</td>
+              <td className="px-4 py-2 font-medium text-slate-900">{row.cei.toFixed(1)}</td>
               <td className="px-4 py-2">
                 <StatusBadge status={row.status} />
               </td>
-              <td className="px-4 py-2 text-slate-800">{row.fanOn ? "On" : "Off"}</td>
+              <td className="px-4 py-2 font-medium text-slate-900">{row.fanOn ? "On" : "Off"}</td>
             </tr>
           ))}
         </tbody>
