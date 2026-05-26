@@ -3,11 +3,14 @@ interface MetricCardProps {
   value: string;
   unit: string;
   sub?: string;
+  className?: string;
 }
 
-export function MetricCard({ label, value, unit, sub }: MetricCardProps) {
+export function MetricCard({ label, value, unit, sub, className }: MetricCardProps) {
   return (
-    <div className="rounded-xl border border-slate-700/80 bg-slate-800/60 p-5 shadow-lg backdrop-blur">
+    <div
+      className={`rounded-xl border border-slate-700/80 bg-slate-800/60 p-5 shadow-lg backdrop-blur ${className ?? ""}`}
+    >
       <p className="text-sm font-medium text-slate-400">{label}</p>
       <p className="mt-2 text-3xl font-bold tracking-tight text-white">
         {value}

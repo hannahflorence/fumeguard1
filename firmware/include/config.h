@@ -1,11 +1,18 @@
 #pragma once
 
-// Pin assignments (adjust for your PCB)
-#define PIN_MQ135       34
-#define PIN_DUST_LED    25
-#define PIN_DUST_AO     32
+// ESP32-WROOM-DA pin assignments (FumeGuard hardware)
+#define PIN_SYS_LED     2
+#define PIN_GREEN_LED   17
+#define PIN_YELLOW_LED  19
+#define PIN_RED_LED     4
+#define PIN_BUZZER      16
 #define PIN_RELAY       26
-#define PIN_LED_ALERT   27
+#define PIN_MQ135       13
+#define PIN_DUST_LED    27
+#define PIN_DUST_ADC    35
+
+#define I2C_SDA         21
+#define I2C_SCL         22
 
 // I2C LCD (16x2) — common address 0x27
 #define LCD_I2C_ADDR    0x27

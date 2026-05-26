@@ -43,6 +43,7 @@ static unsigned long lastTs = 0;
 static bool fanOn = false;
 static bool ledOn = false;
 static bool prevFanOn = false;
+static bool alarmArmed = true;
 static String lastStatus = "safe";
 
 static float readMq135Ppm();
@@ -58,17 +59,26 @@ static long long nowEpochMs();
 
 void setup() {
   Serial.begin(115200);
+
+  pinMode(PIN_SYS_LED, OUTPUT);
+  pinMode(PIN_GREEN_LED, OUTPUT);
+  pinMode(PIN_YELLOW_LED, OUTPUT);
+  pinMode(PIN_RED_LED, OUTPUT);
+  pinMode(PIN_BUZZER, OUTPUT);
   pinMode(PIN_RELAY, OUTPUT);
-  pinMode(PIN_LED_ALERT, OUTPUT);
   pinMode(PIN_DUST_LED, OUTPUT);
   pinMode(PIN_MQ135, INPUT);
-  pinMode(PIN_DUST_AO, INPUT);
+  pinMode(PIN_DUST_ADC, INPUT);
 
-  digitalWrite(PIN_RELAY, LOW);
-  digitalWrite(PIN_LED_ALERT, LOW);
-  digitalWrite(PIN_DUST_LED, LOW);
+  digitalWrite(PIN_DUST_LED, HIGH);
+  digitalWrite(PIN_RELAY, HIGH);
+  digitalWrite(PIN_SYS_LED, HIGH);
+  digitalWrite(PIN_GREEN_LED, LOW);
+  digitalWrite(PIN_YELLOW_LED, LOW);
+  digitalWrite(PIN_RED_LED, LOW);
+  digitalWrite(PIN_BUZZER, LOW);
 
-  Wire.begin();
+  Wire.begin(I2C_SDA, I2C_SCL);
   lcd.init();
   lcd.backlight();
   lcd.print("FumeGuard");
@@ -179,11 +189,9 @@ static float readMq135Ppm() {
 static float readDustUgM3() {
   digitalWrite(PIN_DUST_LED, LOW);
   delayMicroseconds(280);
-  int raw = analogRead(PIN_DUST_AO);
-  digitalWrite(PIN_DUST_LED, HIGH);
+  int raw = analogRead(PIN_DUST_ADC);
   delayMicroseconds(40);
-  digitalWrite(PIN_DUST_LED, LOW);
-  delayMicroseconds(9680);
+  digitalWrite(PIN_DUST_LED, HIGH);
 
   float voltage = (raw / 4095.0f) * 3.3f;
   float density = (voltage - DUST_VOLTAGE_NO_DUST) * DUST_DENSITY_MAX /
@@ -208,10 +216,42 @@ static String deriveStatus(float gas, float dust, float ceiVal) {
 }
 
 static void updateActuators(const String& status) {
-  fanOn = (status == "hazardous");
-  ledOn = (status != "safe");
-  digitalWrite(PIN_RELAY, fanOn ? HIGH : LOW);
-  digitalWrite(PIN_LED_ALERT, ledOn ? HIGH : LOW);
+  digitalWrite(PIN_GREEN_LED, LOW);
+  digitalWrite(PIN_YELLOW_LED, LOW);
+  digitalWrite(PIN_RED_LED, LOW);
+  digitalWrite(PIN_BUZZER, LOW);
+
+  bool newFanOn = fanOn;
+
+  if (status == "safe") {
+    digitalWrite(PIN_GREEN_LED, HIGH);
+    newFanOn = false;
+    alarmArmed = true;
+    ledOn = false;
+  } else if (status == "warning") {
+    digitalWrite(PIN_YELLOW_LED, HIGH);
+    newFanOn = true;
+    ledOn = true;
+    if (alarmArmed) {
+      digitalWrite(PIN_BUZZER, HIGH);
+      delay(120);
+      digitalWrite(PIN_BUZZER, LOW);
+      alarmArmed = false;
+    }
+  } else if (status == "hazardous") {
+    digitalWrite(PIN_RED_LED, HIGH);
+    newFanOn = true;
+    ledOn = true;
+    if (alarmArmed) {
+      digitalWrite(PIN_BUZZER, HIGH);
+      delay(300);
+      digitalWrite(PIN_BUZZER, LOW);
+      alarmArmed = false;
+    }
+  }
+
+  fanOn = newFanOn;
+  digitalWrite(PIN_RELAY, fanOn ? LOW : HIGH);
 }
 
 static void updateLcd(float gas, float dust, float ceiVal, const String& status) {
