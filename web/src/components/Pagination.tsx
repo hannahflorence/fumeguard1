@@ -1,36 +1,55 @@
+import { PanelFooter } from "./PanelFooter";
+
 type PaginationProps = {
   page: number;
   totalPages: number;
   onPageChange: (page: number) => void;
+  /** Keep footer visible so paired cards stay the same height */
+  alwaysShow?: boolean;
 };
 
-export function Pagination({ page, totalPages, onPageChange }: PaginationProps) {
-  if (totalPages <= 1) {
+export function Pagination({
+  page,
+  totalPages,
+  onPageChange,
+  alwaysShow = false,
+}: PaginationProps) {
+  if (totalPages <= 1 && !alwaysShow) {
     return null;
   }
 
+  const singlePage = totalPages <= 1;
+
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 px-4 py-3">
-      <button
-        type="button"
-        disabled={page <= 1}
-        onClick={() => onPageChange(page - 1)}
-        className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm font-bold uppercase tracking-wide text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-      >
-        Previous
-      </button>
-      <span className="text-sm font-bold uppercase tracking-wide text-slate-700">
-        Page {page} Of {totalPages}
-      </span>
-      <button
-        type="button"
-        disabled={page >= totalPages}
-        onClick={() => onPageChange(page + 1)}
-        className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm font-bold uppercase tracking-wide text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-      >
-        Next
-      </button>
-    </div>
+    <PanelFooter className={singlePage ? "justify-center" : "justify-between"}>
+      {singlePage ? (
+        <span className="text-sm font-bold uppercase tracking-wide text-slate-500">
+          Page 1 Of 1
+        </span>
+      ) : (
+        <>
+          <button
+            type="button"
+            disabled={page <= 1}
+            onClick={() => onPageChange(page - 1)}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm font-bold uppercase tracking-wide text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Previous
+          </button>
+          <span className="text-sm font-bold uppercase tracking-wide text-slate-700">
+            Page {page} Of {totalPages}
+          </span>
+          <button
+            type="button"
+            disabled={page >= totalPages}
+            onClick={() => onPageChange(page + 1)}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm font-bold uppercase tracking-wide text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Next
+          </button>
+        </>
+      )}
+    </PanelFooter>
   );
 }
 

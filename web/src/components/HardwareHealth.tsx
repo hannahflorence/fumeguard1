@@ -1,4 +1,5 @@
 import { Card } from "./Card";
+import { PAIRED_PANEL_BODY_CLASS, PanelFooter } from "./PanelFooter";
 import type { HardwareHealthState } from "../hooks/useHardwareHealth";
 
 const components: { key: keyof Pick<
@@ -12,22 +13,23 @@ const components: { key: keyof Pick<
 
 export function HardwareHealth({ health }: { health: HardwareHealthState }) {
   return (
-    <Card className="flex min-h-[18rem] flex-col">
-      <h3 className="border-b border-slate-100 p-4 text-lg font-bold uppercase tracking-wide text-slate-950">
+    <Card className="flex h-full flex-col">
+      <h3 className="shrink-0 border-b border-slate-100 p-4 text-lg font-bold uppercase tracking-wide text-slate-950">
         Hardware Health
       </h3>
-      <ul className="flex flex-1 flex-col justify-center gap-3 p-4">
+      <ul className={`${PAIRED_PANEL_BODY_CLASS} justify-center gap-3 p-4`}>
         {components.map(({ key, label }) => (
           <HealthRow key={key} label={label} online={health[key]} />
         ))}
       </ul>
+      <PanelFooter />
     </Card>
   );
 }
 
 function HealthRow({ label, online }: { label: string; online: boolean }) {
   return (
-    <li className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2.5">
+    <li className="flex shrink-0 items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2.5">
       <span className="text-sm font-bold uppercase tracking-wide text-slate-800">
         {label}
       </span>
