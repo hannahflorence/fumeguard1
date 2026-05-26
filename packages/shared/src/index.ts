@@ -15,8 +15,11 @@ export type EventType = z.infer<typeof EventType>;
 
 export const TelemetryPayload = z.object({
   ts: z.number(),
+  /** MQ-135 raw ADC (0–4095 on ESP32) */
   gasPpm: z.number().nonnegative(),
+  /** GP2Y1014AU raw ADC */
   dustUgM3: z.number().nonnegative(),
+  /** Instant air-quality score 0–100 (higher is better) */
   cei: z.number().nonnegative().optional(),
   status: AirStatus.optional(),
   fanOn: z.boolean(),
@@ -32,25 +35,29 @@ export const EventPayload = z.object({
 export type EventPayload = z.infer<typeof EventPayload>;
 
 export const ThresholdsConfig = z.object({
-  gasWarningPpm: z.number().positive(),
+  /** Raw ADC — hazardous above this (default 1000) */
   gasHazardPpm: z.number().positive(),
-  dustWarningUgM3: z.number().positive(),
+  /** Raw ADC — warning above this (default 800 = 0.8 × hazard) */
+  gasWarningPpm: z.number().positive(),
   dustHazardUgM3: z.number().positive(),
-  ceiWarning: z.number().positive(),
-  ceiHazard: z.number().positive(),
+  dustWarningUgM3: z.number().positive(),
+  /** Hazardous when CEI score is below this (default 70) */
+  ceiHazardBelow: z.number().positive(),
+  sensorAdcMax: z.number().positive().default(3000),
   idleLoadThreshold: z.number().min(0).max(1).default(0.05),
   idleTimeoutMinutes: z.number().positive().default(5),
   historyIntervalMs: z.number().positive().default(5000),
 });
 export type ThresholdsConfig = z.infer<typeof ThresholdsConfig>;
 
+/** Matches standalone firmware: gas 1000, dust 400, CEI < 70 hazardous */
 export const DEFAULT_THRESHOLDS: ThresholdsConfig = {
-  gasWarningPpm: 200,
-  gasHazardPpm: 400,
-  dustWarningUgM3: 35,
-  dustHazardUgM3: 75,
-  ceiWarning: 300,
-  ceiHazard: 600,
+  gasHazardPpm: 1000,
+  gasWarningPpm: 800,
+  dustHazardUgM3: 400,
+  dustWarningUgM3: 320,
+  ceiHazardBelow: 70,
+  sensorAdcMax: 3000,
   idleLoadThreshold: 0.05,
   idleTimeoutMinutes: 5,
   historyIntervalMs: 5000,
@@ -99,36 +106,67 @@ export function mqttEventsTopic(deviceId: string): string {
   return `fumeguard/${deviceId}/events`;
 }
 
-export function normalizeGas(gasPpm: number, thresholds: ThresholdsConfig): number {
-  return Math.min(1, gasPpm / thresholds.gasHazardPpm);
+function mapRange(
+  value: number,
+  inMin: number,
+  inMax: number,
+  outMin: number,
+  outMax: number
+): number {
+  if (inMax === inMin) return outMin;
+  const clamped = Math.min(inMax, Math.max(inMin, value));
+  return outMin + ((clamped - inMin) * (outMax - outMin)) / (inMax - inMin);
 }
 
-export function normalizeDust(dustUgM3: number, thresholds: ThresholdsConfig): number {
-  return Math.min(1, dustUgM3 / thresholds.dustHazardUgM3);
+/** Same as firmware computeCEI(): 0–100 score, higher = cleaner air */
+export function computeCei(
+  gasAdc: number,
+  dustAdc: number,
+  thresholds: ThresholdsConfig
+): number {
+  const max = thresholds.sensorAdcMax;
+  const gasScore = mapRange(Math.min(max, Math.max(0, gasAdc)), 0, max, 100, 0);
+  const dustScore = mapRange(Math.min(max, Math.max(0, dustAdc)), 0, max, 100, 0);
+  return (gasScore + dustScore) / 2;
 }
 
-export function computeLoad(gasPpm: number, dustUgM3: number, thresholds: ThresholdsConfig): number {
-  return Math.max(normalizeGas(gasPpm, thresholds), normalizeDust(dustUgM3, thresholds));
+export function normalizeGas(gasAdc: number, thresholds: ThresholdsConfig): number {
+  return Math.min(1, gasAdc / thresholds.gasHazardPpm);
 }
 
+export function normalizeDust(dustAdc: number, thresholds: ThresholdsConfig): number {
+  return Math.min(1, dustAdc / thresholds.dustHazardUgM3);
+}
+
+export function computeLoad(
+  gasAdc: number,
+  dustAdc: number,
+  cei: number,
+  thresholds: ThresholdsConfig
+): number {
+  const fromSensors = Math.max(
+    normalizeGas(gasAdc, thresholds),
+    normalizeDust(dustAdc, thresholds)
+  );
+  const fromCei = cei < thresholds.ceiHazardBelow ? 1 : 0;
+  return Math.max(fromSensors, fromCei);
+}
+
+/** Matches firmware evaluateAirQuality() */
 export function deriveStatus(
-  gasPpm: number,
-  dustUgM3: number,
+  gasAdc: number,
+  dustAdc: number,
   cei: number,
   thresholds: ThresholdsConfig
 ): AirStatus {
   if (
-    gasPpm >= thresholds.gasHazardPpm ||
-    dustUgM3 >= thresholds.dustHazardUgM3 ||
-    cei >= thresholds.ceiHazard
+    gasAdc > thresholds.gasHazardPpm ||
+    dustAdc > thresholds.dustHazardUgM3 ||
+    cei < thresholds.ceiHazardBelow
   ) {
     return "hazardous";
   }
-  if (
-    gasPpm >= thresholds.gasWarningPpm ||
-    dustUgM3 >= thresholds.dustWarningUgM3 ||
-    cei >= thresholds.ceiWarning
-  ) {
+  if (gasAdc > thresholds.gasWarningPpm || dustAdc > thresholds.dustWarningUgM3) {
     return "warning";
   }
   return "safe";

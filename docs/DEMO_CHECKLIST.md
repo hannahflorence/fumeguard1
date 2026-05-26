@@ -4,18 +4,18 @@ Use this before a presentation or milestone review.
 
 ## Pre-flight
 
-- [ ] Docker running (Mosquitto)
+- [ ] HiveMQ Cloud cluster ready (or Docker if using local Mosquitto)
 - [ ] `.env` copied from `.env.example`
 - [ ] `npm install` completed
 - [ ] `npm run build -w @fumeguard/shared` completed
 
 ## Start stack (in order)
 
-1. [ ] `npm run broker` — Mosquitto on port 1883
+1. [ ] `.env` — `MQTT_URL=mqtts://...hivemq.cloud:8883` + username/password
 2. [ ] `npm run emulators` — Firebase DB (9000) + Auth (9099)
 3. [ ] `npm run seed` — thresholds in `config/thresholds`
 4. [ ] `npm run dev:server` — health OK at http://localhost:3001/health
-5. [ ] `npm run dev:simulator` **or** ESP32 powered and on same WiFi
+5. [ ] `npm run dev:simulator` **or** ESP32 on Wi‑Fi with internet (HiveMQ)
 6. [ ] `npm run dev:web` — http://localhost:5173
 
 ## Verify success criteria (proposal §8)
@@ -30,7 +30,7 @@ Use this before a presentation or milestone review.
 
 ## ESP32-specific
 
-- [ ] `firmware/include/secrets.h` configured (WiFi + broker LAN IP)
+- [ ] `firmware/include/secrets.h` configured (WiFi + HiveMQ host, user, pass, `MQTT_SECURE true`)
 - [ ] `DEVICE_ID` matches `.env` (`esp32-01` default)
 - [ ] Serial monitor shows WiFi + MQTT connected
 - [ ] LCD shows gas, dust, CEI, status
@@ -39,5 +39,5 @@ Use this before a presentation or milestone review.
 
 - [ ] Firebase project + service account
 - [ ] RTDB rules deployed (`database.rules.json`)
-- [ ] MQTT broker with TLS/auth
+- [ ] HiveMQ credentials in `.env` and `secrets.h`
 - [ ] `USE_FIREBASE_EMULATOR=false` in `.env`

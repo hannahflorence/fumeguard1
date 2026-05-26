@@ -3,6 +3,8 @@ import mqtt from "mqtt";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  DEFAULT_THRESHOLDS,
+  computeCei,
   deriveStatus,
   mqttEventsTopic,
   mqttTelemetryTopic,
@@ -17,9 +19,10 @@ const deviceId = process.env.DEVICE_ID ?? "esp32-01";
 const mqttUrl = process.env.MQTT_URL ?? "mqtt://localhost:1883";
 const intervalMs = Number(process.env.SIM_INTERVAL_MS ?? 2000);
 
-let gasPpm = 80;
-let dustUgM3 = 15;
-let cei = 0;
+const thresholds = DEFAULT_THRESHOLDS;
+
+let gasAdc = 400;
+let dustAdc = 150;
 let fanOn = false;
 let ledOn = false;
 let phase = 0;
@@ -42,27 +45,21 @@ client.on("connect", () => {
 
 function tick() {
   phase += 0.08;
-  const spike = Math.sin(phase) > 0.65 ? 1.8 : 1;
-  gasPpm = Math.max(20, 60 + Math.sin(phase * 1.2) * 120 * spike + Math.random() * 30);
-  dustUgM3 = Math.max(5, 12 + Math.sin(phase * 0.9) * 40 * spike + Math.random() * 10);
+  const spike = Math.sin(phase) > 0.65 ? 1.6 : 1;
+  gasAdc = Math.max(
+    50,
+    350 + Math.sin(phase * 1.2) * 450 * spike + Math.random() * 80
+  );
+  dustAdc = Math.max(
+    30,
+    120 + Math.sin(phase * 0.9) * 180 * spike + Math.random() * 40
+  );
 
-  const load = Math.max(gasPpm / 400, dustUgM3 / 75);
-  if (load > 0.05) cei += load * (intervalMs / 1000);
-
-  const status = deriveStatus(gasPpm, dustUgM3, cei, {
-    gasWarningPpm: 200,
-    gasHazardPpm: 400,
-    dustWarningUgM3: 35,
-    dustHazardUgM3: 75,
-    ceiWarning: 300,
-    ceiHazard: 600,
-    idleLoadThreshold: 0.05,
-    idleTimeoutMinutes: 5,
-    historyIntervalMs: 5000,
-  });
+  const cei = computeCei(gasAdc, dustAdc, thresholds);
+  const status = deriveStatus(gasAdc, dustAdc, cei, thresholds);
 
   const prevFan = fanOn;
-  fanOn = status === "hazardous";
+  fanOn = status === "warning" || status === "hazardous";
   ledOn = status !== "safe";
 
   if (fanOn && !prevFan) publishEvent("fan_on", "Exhaust fan activated");
@@ -73,9 +70,9 @@ function tick() {
 
   const telemetry: TelemetryPayload = {
     ts: Date.now(),
-    gasPpm: Math.round(gasPpm * 10) / 10,
-    dustUgM3: Math.round(dustUgM3 * 10) / 10,
-    cei: Math.round(cei * 100) / 100,
+    gasPpm: Math.round(gasAdc),
+    dustUgM3: Math.round(dustAdc),
+    cei: Math.round(cei * 10) / 10,
     status,
     fanOn,
     ledOn,

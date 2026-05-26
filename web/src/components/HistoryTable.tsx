@@ -20,9 +20,9 @@ export function HistoryTable({ rows }: { rows: HistoryPoint[] }) {
         <thead>
           <tr className="border-b border-slate-100 text-slate-700">
             <th className="px-4 py-3 font-bold uppercase tracking-wide">Timestamp</th>
-            <th className="px-4 py-3 font-bold uppercase tracking-wide">Gas (ppm)</th>
-            <th className="px-4 py-3 font-bold uppercase tracking-wide">Dust (µg/m³)</th>
-            <th className="px-4 py-3 font-bold uppercase tracking-wide">CEI</th>
+            <th className="px-4 py-3 font-bold uppercase tracking-wide">Gas (ADC)</th>
+            <th className="px-4 py-3 font-bold uppercase tracking-wide">Dust (ADC)</th>
+            <th className="px-4 py-3 font-bold uppercase tracking-wide">CEI Score</th>
             <th className="px-4 py-3 font-bold uppercase tracking-wide">Status</th>
             <th className="px-4 py-3 font-bold uppercase tracking-wide">Fan</th>
           </tr>
@@ -31,8 +31,8 @@ export function HistoryTable({ rows }: { rows: HistoryPoint[] }) {
           {rows.map((row) => (
             <tr key={row.id} className="border-b border-slate-50 hover:bg-slate-50/80">
               <td className="px-4 py-2 font-medium text-slate-700">{formatTs(row.ts)}</td>
-              <td className="px-4 py-2 font-medium text-slate-900">{row.gasPpm.toFixed(1)}</td>
-              <td className="px-4 py-2 font-medium text-slate-900">{row.dustUgM3.toFixed(1)}</td>
+              <td className="px-4 py-2 font-medium text-slate-900">{row.gasPpm.toFixed(0)}</td>
+              <td className="px-4 py-2 font-medium text-slate-900">{row.dustUgM3.toFixed(0)}</td>
               <td className="px-4 py-2 font-medium text-slate-900">{row.cei.toFixed(1)}</td>
               <td className="px-4 py-2">
                 <StatusBadge status={row.status} />

@@ -1,5 +1,6 @@
 import {
   ThresholdsConfig,
+  computeCei,
   computeLoad,
   deriveStatus,
   normalizeDust,
@@ -9,7 +10,6 @@ import {
 } from "@fumeguard/shared";
 
 export interface DeviceState {
-  cei: number;
   lastTs: number | null;
   sessionId: string | null;
   sessionStartedAt: number | null;
@@ -21,7 +21,6 @@ export interface DeviceState {
 
 export function createDeviceState(): DeviceState {
   return {
-    cei: 0,
     lastTs: null,
     sessionId: null,
     sessionStartedAt: null,
@@ -55,8 +54,8 @@ function newSessionId(deviceId: string): string {
 
 export function processTelemetry(
   deviceId: string,
-  gasPpm: number,
-  dustUgM3: number,
+  gasAdc: number,
+  dustAdc: number,
   fanOn: boolean,
   ledOn: boolean,
   ts: number,
@@ -64,18 +63,14 @@ export function processTelemetry(
   state: DeviceState,
   firmwareCei?: number
 ): ProcessedSample {
-  const gasNorm = normalizeGas(gasPpm, thresholds);
-  const dustNorm = normalizeDust(dustUgM3, thresholds);
-  const load = computeLoad(gasPpm, dustUgM3, thresholds);
+  const cei =
+    firmwareCei !== undefined
+      ? firmwareCei
+      : computeCei(gasAdc, dustAdc, thresholds);
 
-  if (state.lastTs !== null && ts > state.lastTs) {
-    const deltaSec = (ts - state.lastTs) / 1000;
-    if (load > thresholds.idleLoadThreshold) {
-      state.cei += load * deltaSec;
-    }
-  } else if (firmwareCei !== undefined && state.lastTs === null) {
-    state.cei = firmwareCei;
-  }
+  const gasNorm = normalizeGas(gasAdc, thresholds);
+  const dustNorm = normalizeDust(dustAdc, thresholds);
+  const load = computeLoad(gasAdc, dustAdc, cei, thresholds);
 
   state.lastTs = ts;
 
@@ -91,13 +86,13 @@ export function processTelemetry(
     if (!state.sessionId) {
       state.sessionId = newSessionId(deviceId);
       state.sessionStartedAt = ts;
-      state.sessionPeakGas = gasPpm;
-      state.sessionPeakDust = dustUgM3;
+      state.sessionPeakGas = gasAdc;
+      state.sessionPeakDust = dustAdc;
       state.sessionSampleCount = 0;
       sessionStarted = true;
     }
-    state.sessionPeakGas = Math.max(state.sessionPeakGas, gasPpm);
-    state.sessionPeakDust = Math.max(state.sessionPeakDust, dustUgM3);
+    state.sessionPeakGas = Math.max(state.sessionPeakGas, gasAdc);
+    state.sessionPeakDust = Math.max(state.sessionPeakDust, dustAdc);
     state.sessionSampleCount += 1;
   } else {
     if (state.lastIdleTs === null) {
@@ -113,8 +108,8 @@ export function processTelemetry(
         endedAt: ts,
         peakGasPpm: state.sessionPeakGas,
         peakDustUgM3: state.sessionPeakDust,
-        finalCei: state.cei,
-        status: deriveStatus(gasPpm, dustUgM3, state.cei, thresholds),
+        finalCei: cei,
+        status: deriveStatus(gasAdc, dustAdc, cei, thresholds),
         sampleCount: state.sessionSampleCount,
       };
       sessionEnded = true;
@@ -124,17 +119,16 @@ export function processTelemetry(
       state.sessionPeakDust = 0;
       state.sessionSampleCount = 0;
       state.lastIdleTs = null;
-      state.cei = 0;
     }
   }
 
-  const status = deriveStatus(gasPpm, dustUgM3, state.cei, thresholds);
+  const status = deriveStatus(gasAdc, dustAdc, cei, thresholds);
 
   const reading: LatestReading = {
     ts,
-    gasPpm,
-    dustUgM3,
-    cei: Math.round(state.cei * 100) / 100,
+    gasPpm: gasAdc,
+    dustUgM3: dustAdc,
+    cei: Math.round(cei * 10) / 10,
     status,
     fanOn,
     ledOn,

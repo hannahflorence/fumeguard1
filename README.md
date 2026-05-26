@@ -7,7 +7,7 @@ Based on the PUP Computer Engineering capstone proposal: ESP32 sensors → MQTT 
 ## Architecture
 
 ```
-ESP32 / Simulator ──MQTT──► Mosquitto ──► Node server ──► Firebase RTDB ──► React dashboard
+ESP32 / Simulator ──MQTT──► HiveMQ Cloud ──► Node server ──► Firebase RTDB ──► React dashboard
                               ▲                              │
                               └──────── local fan/LED/LCD ─────┘ (ESP32 only)
 ```
@@ -25,7 +25,8 @@ ESP32 / Simulator ──MQTT──► Mosquitto ──► Node server ──► 
 ## Prerequisites
 
 - **Node.js 20+**
-- **Docker** (for local Mosquitto) — or install Mosquitto on Windows manually
+- **HiveMQ Cloud** account ([console.hivemq.cloud](https://console.hivemq.cloud)) — project MQTT broker
+- **Docker** (optional) — only if using local Mosquitto instead of HiveMQ
 - **Firebase CLI** (`npm install -g firebase-tools`) for emulators
 - **PlatformIO** (optional, for firmware)
 
@@ -39,11 +40,14 @@ npm install
 npm run build -w @fumeguard/shared
 ```
 
-### 2. Start Mosquitto
+### 2. Configure HiveMQ in `.env`
 
-```bash
-npm run broker
-# or: docker compose up -d mosquitto
+Copy `.env.example` → `.env` and set your HiveMQ cluster URL and credentials:
+
+```env
+MQTT_URL=mqtts://YOUR-CLUSTER.s1.eu.hivemq.cloud:8883
+MQTT_USERNAME=your-hivemq-username
+MQTT_PASSWORD=your-hivemq-password
 ```
 
 ### 3. Start Firebase emulators
@@ -91,8 +95,8 @@ Open http://localhost:5173 — you should see live gas, dust, CEI, charts, and h
 
 See also [docs/DEMO_CHECKLIST.md](docs/DEMO_CHECKLIST.md).
 
-1. `docker compose up -d mosquitto`
-2. `firebase emulators:start --only database,auth`
+1. Configure HiveMQ in `.env` (and `firmware/include/secrets.h` for ESP32)
+2. `firebase emulators:start --only database,auth` (or `npm run emulators`)
 3. `npm run seed`
 4. `npm run dev:server`
 5. `npm run dev:simulator` **or** flash ESP32 firmware
@@ -134,7 +138,7 @@ RTDB rules: clients may **read**; only the Admin SDK (server) **writes**.
 ## ESP32 firmware
 
 1. Copy `firmware/include/secrets.h.example` → `firmware/include/secrets.h`
-2. Set WiFi, MQTT broker IP (your PC running Docker), and `DEVICE_ID`
+2. Set WiFi, **HiveMQ Cloud** host (`MQTT_HOST`), username, password, `MQTT_SECURE true`, and `DEVICE_ID`
 3. Adjust pins in `firmware/include/config.h` if needed
 4. Build/upload:
 
@@ -144,7 +148,9 @@ pio run -t upload
 pio device monitor
 ```
 
-Use your LAN IP for `MQTT_HOST` (not `localhost` on the ESP32).
+Use the **same** HiveMQ cluster credentials in `secrets.h` and project `.env` (see `.env.example`).
+
+**Full walkthrough (after upload):** [docs/ESP32_CONNECTION_GUIDE.md](docs/ESP32_CONNECTION_GUIDE.md)
 
 ## Production migration
 
@@ -159,11 +165,11 @@ Use your LAN IP for `MQTT_HOST` (not `localhost` on the ESP32).
    - `FIREBASE_PROJECT_ID=your-project-id`
 5. Update `VITE_*` vars in `.env` with production Firebase web config
 
-### MQTT
+### MQTT (HiveMQ)
 
-1. Deploy Mosquitto on a VPS **or** use HiveMQ Cloud / similar
-2. Enable TLS and username/password
-3. Set `MQTT_URL`, `MQTT_USERNAME`, `MQTT_PASSWORD` in `.env` and `secrets.h`
+1. Use your HiveMQ Cloud cluster (or dedicated HiveMQ Server)
+2. Set `MQTT_URL=mqtts://...:8883`, `MQTT_USERNAME`, `MQTT_PASSWORD` in `.env`
+3. Mirror the same host, port `8883`, credentials, and `MQTT_SECURE true` in `firmware/include/secrets.h`
 
 ### Mosquitto auth (optional)
 
@@ -177,7 +183,7 @@ See [`.env.example`](.env.example) for all options.
 
 | Command | Description |
 |---------|-------------|
-| `npm run broker` | Start Mosquitto via Docker |
+| `npm run broker` | Optional local Mosquitto (Docker); not needed for HiveMQ |
 | `npm run emulators` | Firebase Database + Auth emulators |
 | `npm run seed` | Write default thresholds |
 | `npm run dev:server` | MQTT bridge |

@@ -1,6 +1,6 @@
 /**
  * FumeGuard ESP32 firmware
- * MQ-135 gas, GP2Y1014AU dust, relay fan, LED, I2C LCD, MQTT telemetry
+ * MQ-135 gas, GP2Y1014AU dust — logic aligned with standalone sketch
  */
 #include <Arduino.h>
 #include <WiFi.h>
@@ -33,22 +33,22 @@
 
 static WiFiClient wifiClient;
 static WiFiClientSecure secureWifiClient;
-static PubSubClient mqtt; // Client is set dynamically in setup()
+static PubSubClient mqtt;
 static LiquidCrystal_I2C lcd(LCD_I2C_ADDR, LCD_COLS, LCD_ROWS);
 
+static float gasValue = 0;
+static float dustValue = 0;
 static float cei = 0;
 static unsigned long lastTelemetryMs = 0;
-static unsigned long lastSampleMs = 0;
-static unsigned long lastTs = 0;
 static bool fanOn = false;
 static bool ledOn = false;
 static bool prevFanOn = false;
 static bool alarmArmed = true;
 static String lastStatus = "safe";
 
-static float readMq135Ppm();
-static float readDustUgM3();
-static float computeLoad(float gas, float dust);
+static float readGasRaw();
+static float readDustRaw();
+static float computeCeiScore(float gas, float dust);
 static String deriveStatus(float gas, float dust, float ceiVal);
 static void updateActuators(const String& status);
 static void updateLcd(float gas, float dust, float ceiVal, const String& status);
@@ -56,6 +56,12 @@ static void publishTelemetry();
 static void publishEvent(const char* type, const char* message);
 static void reconnectMqtt();
 static long long nowEpochMs();
+
+static float mapRange(float value, float inMin, float inMax, float outMin, float outMax) {
+  value = constrain(value, inMin, inMax);
+  if (inMax == inMin) return outMin;
+  return outMin + (value - inMin) * (outMax - outMin) / (inMax - inMin);
+}
 
 void setup() {
   Serial.begin(115200);
@@ -101,7 +107,7 @@ void setup() {
   }
 
   if (MQTT_SECURE) {
-    secureWifiClient.setInsecure(); // Enable TLS/SSL connection without hardcoding CA
+    secureWifiClient.setInsecure();
     mqtt.setClient(secureWifiClient);
     Serial.println("MQTT: Secure TLS mode enabled");
   } else {
@@ -127,24 +133,18 @@ void loop() {
   mqtt.loop();
 
   unsigned long now = millis();
-  if (now - lastSampleMs < 200) {
+  if (now - lastTelemetryMs < TELEMETRY_INTERVAL_MS) {
     return;
   }
-  lastSampleMs = now;
+  lastTelemetryMs = now;
 
-  float gas = readMq135Ppm();
-  float dust = readDustUgM3();
-  float load = computeLoad(gas, dust);
+  gasValue = readGasRaw();
+  dustValue = readDustRaw();
+  cei = computeCeiScore(gasValue, dustValue);
 
-  if (lastTs > 0 && now > lastTs && load > IDLE_LOAD_THRESHOLD) {
-    float deltaSec = (now - lastTs) / 1000.0f;
-    cei += load * deltaSec;
-  }
-  lastTs = now;
-
-  String status = deriveStatus(gas, dust, cei);
+  String status = deriveStatus(gasValue, dustValue, cei);
   updateActuators(status);
-  updateLcd(gas, dust, cei, status);
+  updateLcd(gasValue, dustValue, cei, status);
 
   if (status != lastStatus) {
     if (status == "hazardous") {
@@ -162,54 +162,38 @@ void loop() {
   }
   prevFanOn = fanOn;
 
-  if (now - lastTelemetryMs >= TELEMETRY_INTERVAL_MS) {
-    lastTelemetryMs = now;
-    publishTelemetry();
-  }
+  publishTelemetry();
 }
 
-static int readAdcAvg(int pin) {
+static float readGasRaw() {
   long sum = 0;
   for (int i = 0; i < ADC_SAMPLES; i++) {
-    sum += analogRead(pin);
+    sum += analogRead(PIN_MQ135);
     delay(2);
   }
-  return sum / ADC_SAMPLES;
+  return (float)(sum / ADC_SAMPLES);
 }
 
-static float readMq135Ppm() {
-  int raw = readAdcAvg(PIN_MQ135);
-  float voltage = (raw / 4095.0f) * 3.3f;
-  float rs = MQ135_RL_KOHM * (3.3f - voltage) / (voltage + 0.01f);
-  float ratio = rs / MQ135_RO_CLEAN;
-  float ppm = 116.6020682f * powf(ratio, -2.769034857f);
-  return constrain(ppm, 0.0f, 2000.0f);
-}
-
-static float readDustUgM3() {
+static float readDustRaw() {
   digitalWrite(PIN_DUST_LED, LOW);
   delayMicroseconds(280);
   int raw = analogRead(PIN_DUST_ADC);
   delayMicroseconds(40);
   digitalWrite(PIN_DUST_LED, HIGH);
-
-  float voltage = (raw / 4095.0f) * 3.3f;
-  float density = (voltage - DUST_VOLTAGE_NO_DUST) * DUST_DENSITY_MAX /
-                  (DUST_VOLTAGE_MAX - DUST_VOLTAGE_NO_DUST);
-  return constrain(density, 0.0f, DUST_DENSITY_MAX);
+  return (float)raw;
 }
 
-static float computeLoad(float gas, float dust) {
-  float gasNorm = min(1.0f, gas / GAS_HAZARD_PPM);
-  float dustNorm = min(1.0f, dust / DUST_HAZARD_UGM3);
-  return max(gasNorm, dustNorm);
+static float computeCeiScore(float gas, float dust) {
+  float gasScore = mapRange(gas, 0, SENSOR_ADC_MAX, 100, 0);
+  float dustScore = mapRange(dust, 0, SENSOR_ADC_MAX, 100, 0);
+  return (gasScore + dustScore) / 2.0f;
 }
 
 static String deriveStatus(float gas, float dust, float ceiVal) {
-  if (gas >= GAS_HAZARD_PPM || dust >= DUST_HAZARD_UGM3 || ceiVal >= CEI_HAZARD) {
+  if (gas > GAS_HAZARD_RAW || dust > DUST_HAZARD_RAW || ceiVal < CEI_HAZARD_BELOW) {
     return "hazardous";
   }
-  if (gas >= GAS_WARNING_PPM || dust >= DUST_WARNING_UGM3 || ceiVal >= CEI_WARNING) {
+  if (gas > GAS_WARNING_RAW || dust > DUST_WARNING_RAW) {
     return "warning";
   }
   return "safe";
@@ -256,21 +240,19 @@ static void updateActuators(const String& status) {
 
 static void updateLcd(float gas, float dust, float ceiVal, const String& status) {
   lcd.setCursor(0, 0);
-  lcd.printf("G:%4.0f D:%3.0f", gas, dust);
+  lcd.printf("G:%4.0f D:%4.0f", gas, dust);
   lcd.setCursor(0, 1);
-  lcd.printf("C:%5.0f %-7s", ceiVal, status.c_str());
+  lcd.printf("C:%3.0f %-7s", ceiVal, status.c_str());
 }
 
 static void publishTelemetry() {
-  float gas = readMq135Ppm();
-  float dust = readDustUgM3();
-  String status = deriveStatus(gas, dust, cei);
+  String status = deriveStatus(gasValue, dustValue, cei);
 
   JsonDocument doc;
   doc["ts"] = nowEpochMs();
-  doc["gasPpm"] = roundf(gas * 10) / 10.0f;
-  doc["dustUgM3"] = roundf(dust * 10) / 10.0f;
-  doc["cei"] = roundf(cei * 100) / 100.0f;
+  doc["gasPpm"] = (int)gasValue;
+  doc["dustUgM3"] = (int)dustValue;
+  doc["cei"] = roundf(cei * 10) / 10.0f;
   doc["status"] = status;
   doc["fanOn"] = fanOn;
   doc["ledOn"] = ledOn;

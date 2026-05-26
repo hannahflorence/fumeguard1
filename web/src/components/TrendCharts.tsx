@@ -55,9 +55,9 @@ export function TrendCharts({ history }: { history: HistoryPoint[] }) {
             <YAxis stroke="#64748b" tick={{ fontSize: 11 }} />
             <Tooltip contentStyle={tooltipStyle} />
             <Legend />
-            <Line type="monotone" dataKey="gas" name="Gas (ppm)" stroke="#0284c7" dot={false} />
-            <Line type="monotone" dataKey="dust" name="Dust (µg/m³)" stroke="#7c3aed" dot={false} />
-            <Line type="monotone" dataKey="cei" name="CEI" stroke="#ea580c" dot={false} />
+            <Line type="monotone" dataKey="gas" name="Gas (ADC)" stroke="#0284c7" dot={false} />
+            <Line type="monotone" dataKey="dust" name="Dust (ADC)" stroke="#7c3aed" dot={false} />
+            <Line type="monotone" dataKey="cei" name="CEI Score" stroke="#ea580c" dot={false} />
           </LineChart>
         </ResponsiveContainer>
       </div>

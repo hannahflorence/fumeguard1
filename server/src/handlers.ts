@@ -21,7 +21,15 @@ async function loadThresholds(db: admin.database.Database): Promise<ThresholdsCo
   }
   const snap = await db.ref("config/thresholds").once("value");
   if (snap.exists()) {
-    cachedThresholds = { ...DEFAULT_THRESHOLDS, ...snap.val() };
+    const val = snap.val() as Record<string, unknown>;
+    cachedThresholds = {
+      ...DEFAULT_THRESHOLDS,
+      ...val,
+      ceiHazardBelow:
+        (val.ceiHazardBelow as number | undefined) ??
+        (val.ceiHazard as number | undefined) ??
+        DEFAULT_THRESHOLDS.ceiHazardBelow,
+    };
   } else {
     cachedThresholds = DEFAULT_THRESHOLDS;
   }

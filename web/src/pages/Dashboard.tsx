@@ -50,11 +50,6 @@ export function Dashboard() {
   const pagedEvents = paginate(events, eventsPage);
   const pagedHistory = paginate(historyNewestFirst, historyPage);
 
-  const activeSession = useMemo(
-    () => sessions.find((s) => s.endedAt === null),
-    [sessions]
-  );
-
   return (
     <div className="dashboard-ui mx-auto max-w-7xl space-y-6 px-4 py-6 sm:space-y-8 sm:px-6 sm:py-8">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -96,19 +91,19 @@ export function Dashboard() {
       <section className="grid grid-cols-1 gap-4 overflow-visible sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           label="Gas (MQ-135)"
-          value={latest ? latest.gasPpm.toFixed(1) : "—"}
-          unit="ppm"
+          value={latest ? latest.gasPpm.toFixed(0) : "—"}
+          unit="ADC"
         />
         <MetricCard
-          label="Particulates"
-          value={latest ? latest.dustUgM3.toFixed(1) : "—"}
-          unit="µg/m³"
+          label="Dust Sensor"
+          value={latest ? latest.dustUgM3.toFixed(0) : "—"}
+          unit="ADC"
         />
         <MetricCard
-          label="Cumulative Exposure"
+          label="CEI Score"
           value={latest ? latest.cei.toFixed(1) : "—"}
-          unit="CEI"
-          sub={activeSession ? "Active Session" : "Idle / No Session"}
+          unit="/ 100"
+          sub="Higher Is Cleaner Air"
         />
         <MetricCard
           label="Exposure Load"
