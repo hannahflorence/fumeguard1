@@ -1,9 +1,7 @@
 import {
   DEFAULT_THRESHOLDS,
-  EventPayload,
   TelemetryPayload,
   ThresholdsConfig,
-  type StoredEvent,
 } from "@fumeguard/shared";
 import type admin from "firebase-admin";
 import { config } from "./config.js";
@@ -134,28 +132,6 @@ export function createMqttHandlers(db: admin.database.Database) {
           sampleCount: s.sampleCount,
         });
       }
-    },
-
-    async onEvent(topic: string, raw: string): Promise<void> {
-      const deviceId = topic.split("/")[1];
-      if (!deviceId) return;
-
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(raw);
-      } catch {
-        console.warn("[mqtt] Invalid JSON on", topic);
-        return;
-      }
-
-      const result = EventPayload.safeParse(parsed);
-      if (!result.success) {
-        console.warn("[mqtt] Invalid event:", result.error.flatten());
-        return;
-      }
-
-      const event: StoredEvent = result.data;
-      await db.ref(`devices/${deviceId}/events`).push(event);
     },
   };
 }

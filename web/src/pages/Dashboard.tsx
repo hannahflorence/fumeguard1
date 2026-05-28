@@ -1,16 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Card } from "../components/Card";
 import { HardwareHealth } from "../components/HardwareHealth";
 import { HistoryTable } from "../components/HistoryTable";
 import { MetricCard } from "../components/MetricCard";
-import { PAIRED_PANEL_BODY_CLASS } from "../components/PanelFooter";
-import { PAGE_SIZE, paginate, Pagination, totalPages } from "../components/Pagination";
+import { Pagination, paginate, totalPages } from "../components/Pagination";
 import { SessionSummary } from "../components/SessionSummary";
 import { StatusBadge } from "../components/StatusBadge";
 import { SystemStatus } from "../components/SystemStatus";
 import { TrendCharts } from "../components/TrendCharts";
 import {
-  useEvents,
   useFilteredHistory,
   useHistory,
   useLatest,
@@ -25,12 +23,10 @@ export function Dashboard() {
   const { data: latest, loading, error } = useLatest();
   const { data: history, loading: historyLoading } = useHistory(80);
   const { data: sessions, loading: sessionsLoading } = useSessions();
-  const { data: events } = useEvents(50);
   const hardwareHealth = useHardwareHealth(latest, loading, error);
 
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [eventsPage, setEventsPage] = useState(1);
   const [historyPage, setHistoryPage] = useState(1);
 
   const fromTs = dateFrom ? new Date(dateFrom).getTime() : null;
@@ -41,15 +37,7 @@ export function Dashboard() {
     [filteredHistory]
   );
 
-  const eventsPages = totalPages(events.length);
   const historyPages = totalPages(historyNewestFirst.length);
-
-  useEffect(() => {
-    if (eventsPage > eventsPages) {
-      setEventsPage(eventsPages);
-    }
-  }, [eventsPage, eventsPages]);
-  const pagedEvents = paginate(events, eventsPage);
   const pagedHistory = paginate(historyNewestFirst, historyPage);
   const now = Date.now();
   const latestAgeMs = latest ? Math.abs(now - latest.ts) : Number.POSITIVE_INFINITY;
@@ -126,61 +114,12 @@ export function Dashboard() {
         />
       </section>
 
-      <section>
-        {!historyLoading && <TrendCharts history={history} />}
+      <section className="grid grid-cols-1 items-stretch gap-6 overflow-visible lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
+        <div>{!historyLoading && <TrendCharts history={history} />}</div>
+        <HardwareHealth health={hardwareHealth} />
       </section>
 
       <SessionSummary sessions={sessions} loading={sessionsLoading} />
-
-      <section className="grid grid-cols-1 items-stretch gap-6 overflow-visible lg:grid-cols-2">
-        <Card className="flex h-full flex-col">
-          <h3 className="shrink-0 border-b border-slate-100 p-4 text-lg font-bold uppercase tracking-wide text-slate-950">
-            Recent Events
-          </h3>
-          <ul className={`${PAIRED_PANEL_BODY_CLASS} gap-2 p-4 text-sm`}>
-            {events.length === 0 ? (
-              <li className="flex flex-1 items-center justify-center font-bold uppercase tracking-wide text-slate-600">
-                No Events Yet
-              </li>
-            ) : (
-              Array.from({ length: PAGE_SIZE }, (_, index) => {
-                const e = pagedEvents[index];
-                if (!e) {
-                  return (
-                    <li
-                      key={`empty-${index}`}
-                      className="min-h-[2.35rem] shrink-0"
-                      aria-hidden
-                    />
-                  );
-                }
-                return (
-                  <li
-                    key={e.id}
-                    className="min-h-[2.35rem] shrink-0 font-medium text-slate-800"
-                  >
-                    <span className="text-slate-600">
-                      {new Date(e.ts).toLocaleTimeString()}{" "}
-                    </span>
-                    <span className="font-bold uppercase tracking-wide text-sky-700">
-                      {e.type.replace(/_/g, " ")}
-                    </span>
-                    : <span className="uppercase">{e.message}</span>
-                  </li>
-                );
-              })
-            )}
-          </ul>
-          <Pagination
-            page={eventsPage}
-            totalPages={eventsPages}
-            onPageChange={setEventsPage}
-            alwaysShow
-          />
-        </Card>
-
-        <HardwareHealth health={hardwareHealth} />
-      </section>
 
       <section>
         <Card className="flex flex-col">

@@ -22,9 +22,9 @@ const mqttClient = mqtt.connect(config.mqttUrl, mqttOptions);
 
 mqttClient.on("connect", () => {
   console.log("[mqtt] Connected to", config.mqttUrl);
-  mqttClient.subscribe(["fumeguard/+/telemetry", "fumeguard/+/events"], (err) => {
+  mqttClient.subscribe(["fumeguard/+/telemetry"], (err) => {
     if (err) console.error("[mqtt] Subscribe error:", err);
-    else console.log("[mqtt] Subscribed to fumeguard/+/telemetry and events");
+    else console.log("[mqtt] Subscribed to fumeguard/+/telemetry");
   });
 });
 
@@ -32,8 +32,6 @@ mqttClient.on("message", (topic, payload) => {
   const raw = payload.toString();
   if (topic.endsWith("/telemetry")) {
     handlers.onTelemetry(topic, raw).catch((e) => console.error("[telemetry]", e));
-  } else if (topic.endsWith("/events")) {
-    handlers.onEvent(topic, raw).catch((e) => console.error("[event]", e));
   }
 });
 
