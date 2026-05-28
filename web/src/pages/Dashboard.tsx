@@ -4,7 +4,6 @@ import { HardwareHealth } from "../components/HardwareHealth";
 import { HistoryTable } from "../components/HistoryTable";
 import { MetricCard } from "../components/MetricCard";
 import { Pagination, paginate, totalPages } from "../components/Pagination";
-import { StatusBadge } from "../components/StatusBadge";
 import { SystemStatus } from "../components/SystemStatus";
 import { TrendCharts } from "../components/TrendCharts";
 import {
@@ -16,6 +15,15 @@ import { useHardwareHealth } from "../hooks/useHardwareHealth";
 import { DEVICE_ID } from "../lib/firebase";
 
 const TELEMETRY_STALE_MS = 240_000;
+const DELAYED_TELEMETRY_MS = 600_000;
+
+function formatAge(ms: number): string {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  if (totalSeconds < 60) return `${totalSeconds}s ago`;
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}m ${seconds}s ago`;
+}
 
 export function Dashboard() {
   const { data: latest, loading, error } = useLatest();
@@ -42,18 +50,49 @@ export function Dashboard() {
   const lastSeenText =
     latest != null ? new Date(latest.ts).toLocaleString() : "No telemetry received yet";
   const visibleLatest = hasFreshTelemetry ? latest : null;
+  const freshnessState = !latest
+    ? "offline"
+    : latestAgeMs <= TELEMETRY_STALE_MS
+      ? "live"
+      : latestAgeMs <= DELAYED_TELEMETRY_MS
+        ? "delayed"
+        : "offline";
+  const freshnessLabel =
+    freshnessState === "live"
+      ? "Live"
+      : freshnessState === "delayed"
+        ? "Delayed"
+        : "Offline";
+  const freshnessClass =
+    freshnessState === "live"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      : freshnessState === "delayed"
+        ? "border-amber-200 bg-amber-50 text-amber-700"
+        : "border-slate-200 bg-slate-100 text-slate-600";
+  const statusTone =
+    visibleLatest?.status === "safe"
+      ? "safe"
+      : visibleLatest?.status === "warning"
+        ? "warning"
+        : visibleLatest?.status === "hazardous"
+          ? "hazardous"
+          : "neutral";
 
   return (
     <div className="dashboard-ui mx-auto max-w-7xl space-y-6 px-4 py-6 sm:space-y-8 sm:px-6 sm:py-8">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-xl font-bold uppercase tracking-wide text-slate-950 sm:text-2xl">
+            <h1 className="text-xl font-bold tracking-tight text-slate-950 sm:text-2xl">
               Fume Monitoring System
             </h1>
-            {visibleLatest && <StatusBadge status={visibleLatest.status} />}
+            <span
+              className={`inline-flex items-center rounded-full border px-3 py-1 text-sm font-semibold tracking-wide ${freshnessClass}`}
+            >
+              {freshnessLabel}
+            </span>
           </div>
-          <p className="mt-1 text-sm font-bold uppercase tracking-wide text-slate-700 sm:text-base">
+          <p className="mt-1 text-sm font-semibold tracking-wide text-slate-700 sm:text-base">
             Device{" "}
             <code className="rounded bg-slate-100 px-1.5 py-0.5 font-semibold normal-case text-sky-700">
               {DEVICE_ID}
@@ -69,20 +108,45 @@ export function Dashboard() {
         </Card>
       </header>
 
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
+          <p className="font-semibold text-slate-600">ESP32 Link</p>
+          <p className={`font-bold ${hardwareHealth.esp32Online ? "text-emerald-700" : "text-slate-500"}`}>
+            {hardwareHealth.esp32Online ? "Connected" : "Disconnected"}
+          </p>
+        </div>
+        <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
+          <p className="font-semibold text-slate-600">MQTT Bridge</p>
+          <p className={`font-bold ${!error ? "text-emerald-700" : "text-red-700"}`}>
+            {!error ? "Connected" : "Issue"}
+          </p>
+        </div>
+        <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
+          <p className="font-semibold text-slate-600">Firebase Feed</p>
+          <p className={`font-bold ${!error ? "text-emerald-700" : "text-red-700"}`}>
+            {!error ? "Healthy" : "Unavailable"}
+          </p>
+        </div>
+        <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
+          <p className="font-semibold text-slate-600">Last Publish</p>
+          <p className="font-bold text-slate-700">{latest ? formatAge(latestAgeMs) : "No data"}</p>
+        </div>
+      </section>
+
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold uppercase tracking-wide text-red-700 shadow-[0_4px_15px_rgba(0,0,0,0.06)]">
-          Cannot Reach Firebase: {error}. Start Emulators And The Backend Bridge.
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold tracking-wide text-red-700 shadow-[0_4px_15px_rgba(0,0,0,0.06)]">
+          Cannot reach Firebase: {error}. Start emulators and backend bridge.
         </div>
       )}
 
       {loading && !latest && (
-        <p className="font-bold uppercase tracking-wide text-slate-700">
-          Connecting To Live Data…
+        <p className="font-semibold tracking-wide text-slate-700">
+          Connecting to live data...
         </p>
       )}
       {!loading && !hasFreshTelemetry && (
-        <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold uppercase tracking-wide text-amber-800 shadow-[0_4px_15px_rgba(0,0,0,0.06)]">
-          No Fresh Telemetry From Device. Last Seen: {lastSeenText}. Check ESP32 Wi-Fi Connection.
+        <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold tracking-wide text-amber-800 shadow-[0_4px_15px_rgba(0,0,0,0.06)]">
+          No fresh telemetry from device. Last seen: {lastSeenText}. Check ESP32 Wi-Fi connection.
         </div>
       )}
 
@@ -91,23 +155,27 @@ export function Dashboard() {
           label="Gas (MQ-135)"
           value={visibleLatest ? visibleLatest.gasPpm.toFixed(0) : "—"}
           unit="ADC"
+          tone={statusTone}
         />
         <MetricCard
           label="Dust Sensor"
           value={visibleLatest ? visibleLatest.dustUgM3.toFixed(0) : "—"}
           unit="ADC"
+          tone={statusTone}
         />
         <MetricCard
           label="CEI Score"
           value={visibleLatest ? visibleLatest.cei.toFixed(1) : "—"}
           unit="/ 100"
           sub="Higher Is Cleaner Air"
+          tone={statusTone}
         />
         <MetricCard
           label="Exposure Load"
           value={visibleLatest?.load != null ? (visibleLatest.load * 100).toFixed(0) : "—"}
           unit="%"
           sub="Of Hazard Threshold"
+          tone={statusTone}
         />
       </section>
 

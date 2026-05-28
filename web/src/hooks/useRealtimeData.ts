@@ -8,11 +8,7 @@ import {
 } from "firebase/database";
 import {
   LatestReading as LatestReadingSchema,
-  SessionRecord as SessionRecordSchema,
-  StoredEvent as StoredEventSchema,
   type LatestReading,
-  type SessionRecord,
-  type StoredEvent,
 } from "@fumeguard/shared";
 import { db, DEVICE_ID } from "../lib/firebase";
 
@@ -32,16 +28,6 @@ async function fetchEmulatorJson(path: string): Promise<unknown> {
 
 function normalizeLatest(value: unknown): LatestReading | null {
   const parsed = LatestReadingSchema.safeParse(value);
-  return parsed.success ? parsed.data : null;
-}
-
-function normalizeSession(value: unknown): SessionRecord | null {
-  const parsed = SessionRecordSchema.safeParse(value);
-  return parsed.success ? parsed.data : null;
-}
-
-function normalizeEvent(value: unknown): StoredEvent | null {
-  const parsed = StoredEventSchema.safeParse(value);
   return parsed.success ? parsed.data : null;
 }
 
@@ -165,113 +151,6 @@ export function useHistory(limit = 60) {
 
 export interface HistoryPoint extends LatestReading {
   id: string;
-}
-
-export function useSessions() {
-  const [data, setData] = useState<SessionRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (USE_EMULATOR) {
-      let stopped = false;
-      async function poll() {
-        try {
-          const raw = await fetchEmulatorJson(`devices/${DEVICE_ID}/sessions`);
-          const list: SessionRecord[] = [];
-          if (raw && typeof raw === "object") {
-            for (const value of Object.values(raw as Record<string, unknown>)) {
-              const normalized = normalizeSession(value);
-              if (!normalized) continue;
-              list.push(normalized);
-            }
-          }
-          list.sort((a, b) => (b.startedAt ?? 0) - (a.startedAt ?? 0));
-          if (!stopped) {
-            setData(list);
-            setLoading(false);
-          }
-        } catch {
-          if (!stopped) setLoading(false);
-        }
-      }
-      void poll();
-      const timer = window.setInterval(() => {
-        void poll();
-      }, 5000);
-      return () => {
-        stopped = true;
-        window.clearInterval(timer);
-      };
-    }
-
-    const r = ref(db, `devices/${DEVICE_ID}/sessions`);
-    const unsub = onValue(r, (snap) => {
-      const list: SessionRecord[] = [];
-      snap.forEach((child) => {
-        const normalized = normalizeSession(child.val());
-        if (!normalized) return;
-        list.push(normalized);
-      });
-      list.sort((a, b) => (b.startedAt ?? 0) - (a.startedAt ?? 0));
-      setData(list);
-      setLoading(false);
-    });
-    return () => unsub();
-  }, []);
-
-  return { data, loading };
-}
-
-export function useEvents(limit = 20) {
-  const [data, setData] = useState<(StoredEvent & { id: string })[]>([]);
-
-  useEffect(() => {
-    if (USE_EMULATOR) {
-      let stopped = false;
-      async function poll() {
-        try {
-          const raw = await fetchEmulatorJson(`devices/${DEVICE_ID}/events`);
-          const list: (StoredEvent & { id: string })[] = [];
-          if (raw && typeof raw === "object") {
-            for (const [id, value] of Object.entries(raw as Record<string, unknown>)) {
-              const normalized = normalizeEvent(value);
-              if (!normalized) continue;
-              list.push({ id, ...normalized });
-            }
-          }
-          list.sort((a, b) => b.ts - a.ts);
-          const sliced = list.slice(0, limit);
-          if (!stopped) setData(sliced);
-        } catch {
-          // Ignore poll errors and keep previous data.
-        }
-      }
-      void poll();
-      const timer = window.setInterval(() => {
-        void poll();
-      }, 4000);
-      return () => {
-        stopped = true;
-        window.clearInterval(timer);
-      };
-    }
-
-    const r = ref(db, `devices/${DEVICE_ID}/events`);
-    const q = query(r, orderByChild("ts"), limitToLast(limit));
-    const unsub = onValue(q, (snap) => {
-      const list: (StoredEvent & { id: string })[] = [];
-      snap.forEach((child) => {
-        const normalized = normalizeEvent(child.val());
-        if (!normalized || !child.key) return;
-        list.push({ id: child.key, ...normalized });
-      });
-      list.sort((a, b) => b.ts - a.ts);
-      setData(list);
-    });
-    return () => unsub();
-  }, [limit]);
-
-  return { data };
 }
 
 export function useFilteredHistory(
