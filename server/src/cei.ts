@@ -63,10 +63,10 @@ export function processTelemetry(
   state: DeviceState,
   firmwareCei?: number
 ): ProcessedSample {
-  const cei =
-    firmwareCei !== undefined
-      ? firmwareCei
-      : computeCei(gasAdc, dustAdc, thresholds);
+  const computedCei = computeCei(gasAdc, dustAdc, thresholds);
+  // Use computed CEI as canonical source to keep status/actuator logic
+  // consistent when firmware payload CEI is stale or differently scaled.
+  const cei = computedCei;
 
   const gasNorm = normalizeGas(gasAdc, thresholds);
   const dustNorm = normalizeDust(dustAdc, thresholds);

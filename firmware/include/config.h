@@ -7,6 +7,9 @@
 #define PIN_RED_LED     4
 #define PIN_BUZZER      16
 #define PIN_RELAY       26
+// NOTE: ESP32 Wi-Fi cannot reliably read ADC2 pins (GPIO0/2/4/12-15/25-27).
+// Move MQ-135 analog output to an ADC1 pin (GPIO32-39). We use GPIO34.
+//#define PIN_MQ135       34
 #define PIN_MQ135       13
 #define PIN_DUST_LED    27
 #define PIN_DUST_ADC    35

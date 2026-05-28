@@ -49,6 +49,12 @@ export function Dashboard() {
   }, [eventsPage, eventsPages]);
   const pagedEvents = paginate(events, eventsPage);
   const pagedHistory = paginate(historyNewestFirst, historyPage);
+  const now = Date.now();
+  const latestAgeMs = latest ? Math.abs(now - latest.ts) : Number.POSITIVE_INFINITY;
+  const hasFreshTelemetry = latest != null && latestAgeMs <= 120_000;
+  const lastSeenText =
+    latest != null ? new Date(latest.ts).toLocaleString() : "No telemetry received yet";
+  const visibleLatest = hasFreshTelemetry ? latest : null;
 
   return (
     <div className="dashboard-ui mx-auto max-w-7xl space-y-6 px-4 py-6 sm:space-y-8 sm:px-6 sm:py-8">
@@ -58,7 +64,7 @@ export function Dashboard() {
             <h1 className="text-xl font-bold uppercase tracking-wide text-slate-950 sm:text-2xl">
               Fume Monitoring System
             </h1>
-            {latest && <StatusBadge status={latest.status} />}
+            {visibleLatest && <StatusBadge status={visibleLatest.status} />}
           </div>
           <p className="mt-1 text-sm font-bold uppercase tracking-wide text-slate-700 sm:text-base">
             Device{" "}
@@ -72,7 +78,7 @@ export function Dashboard() {
           <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-slate-900">
             System Actuators
           </h3>
-          <SystemStatus latest={latest} />
+          <SystemStatus latest={visibleLatest} />
         </Card>
       </header>
 
@@ -87,27 +93,32 @@ export function Dashboard() {
           Connecting To Live Data…
         </p>
       )}
+      {!loading && !hasFreshTelemetry && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold uppercase tracking-wide text-amber-800 shadow-[0_4px_15px_rgba(0,0,0,0.06)]">
+          No Fresh Telemetry From Device. Last Seen: {lastSeenText}. Check ESP32 Wi-Fi Connection.
+        </div>
+      )}
 
       <section className="grid grid-cols-1 gap-4 overflow-visible sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           label="Gas (MQ-135)"
-          value={latest ? latest.gasPpm.toFixed(0) : "—"}
+          value={visibleLatest ? visibleLatest.gasPpm.toFixed(0) : "—"}
           unit="ADC"
         />
         <MetricCard
           label="Dust Sensor"
-          value={latest ? latest.dustUgM3.toFixed(0) : "—"}
+          value={visibleLatest ? visibleLatest.dustUgM3.toFixed(0) : "—"}
           unit="ADC"
         />
         <MetricCard
           label="CEI Score"
-          value={latest ? latest.cei.toFixed(1) : "—"}
+          value={visibleLatest ? visibleLatest.cei.toFixed(1) : "—"}
           unit="/ 100"
           sub="Higher Is Cleaner Air"
         />
         <MetricCard
           label="Exposure Load"
-          value={latest?.load != null ? (latest.load * 100).toFixed(0) : "—"}
+          value={visibleLatest?.load != null ? (visibleLatest.load * 100).toFixed(0) : "—"}
           unit="%"
           sub="Of Hazard Threshold"
         />

@@ -45,6 +45,10 @@ static bool ledOn = false;
 static bool prevFanOn = false;
 static bool alarmArmed = true;
 static String lastStatus = "safe";
+static unsigned long lastWifiAttemptMs = 0;
+static unsigned long lastWifiDotMs = 0;
+static unsigned long lastMqttAttemptMs = 0;
+static bool ntpSynced = false;
 
 static float readGasRaw();
 static float readDustRaw();
@@ -56,6 +60,8 @@ static void publishTelemetry();
 static void publishEvent(const char* type, const char* message);
 static void reconnectMqtt();
 static long long nowEpochMs();
+static void ensureWifiConnected();
+static const char* wifiStatusText(wl_status_t status);
 
 static float mapRange(float value, float inMin, float inMax, float outMin, float outMax) {
   value = constrain(value, inMin, inMax);
@@ -92,19 +98,11 @@ void setup() {
   lcd.print("Starting...");
 
   WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  Serial.print("WiFi connecting");
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println("\nWiFi OK: " + WiFi.localIP().toString());
-
-  configTime(0, 0, "pool.ntp.org", "time.nist.gov");
-  struct tm timeinfo;
-  for (int i = 0; i < 20 && !getLocalTime(&timeinfo); i++) {
-    delay(500);
-  }
+  WiFi.setSleep(false);
+  WiFi.setAutoReconnect(true);
+  WiFi.disconnect(true, true);
+  delay(200);
+  ensureWifiConnected();
 
   if (MQTT_SECURE) {
     secureWifiClient.setInsecure();
@@ -117,17 +115,25 @@ void setup() {
 
   mqtt.setServer(MQTT_HOST, MQTT_PORT);
   mqtt.setBufferSize(512);
-  reconnectMqtt();
+  if (WiFi.status() == WL_CONNECTED) {
+    reconnectMqtt();
+  }
 
   lcd.clear();
-  lcd.print("MQTT ready");
+  lcd.print("Boot complete");
 }
 
 void loop() {
-  if (WiFi.status() != WL_CONNECTED) {
-    WiFi.reconnect();
+  ensureWifiConnected();
+
+  if (WiFi.status() == WL_CONNECTED && !ntpSynced) {
+    configTime(0, 0, "pool.ntp.org", "time.nist.gov");
+    struct tm timeinfo;
+    ntpSynced = getLocalTime(&timeinfo, 1500);
+    Serial.println(ntpSynced ? "NTP sync OK" : "NTP sync pending");
   }
-  if (!mqtt.connected()) {
+
+  if (WiFi.status() == WL_CONNECTED && !mqtt.connected()) {
     reconnectMqtt();
   }
   mqtt.loop();
@@ -285,21 +291,60 @@ static long long nowEpochMs() {
 }
 
 static void reconnectMqtt() {
-  while (!mqtt.connected()) {
-    Serial.print("MQTT connect...");
-    String clientId = String("fumeguard-") + DEVICE_ID;
-    bool ok;
-    if (strlen(MQTT_USER) > 0) {
-      ok = mqtt.connect(clientId.c_str(), MQTT_USER, MQTT_PASS);
-    } else {
-      ok = mqtt.connect(clientId.c_str());
-    }
-    if (ok) {
-      Serial.println(" OK");
-      return;
-    }
+  if (WiFi.status() != WL_CONNECTED) return;
+
+  unsigned long now = millis();
+  if (now - lastMqttAttemptMs < 3000) return;
+  lastMqttAttemptMs = now;
+
+  Serial.print("MQTT connect...");
+  String clientId = String("fumeguard-") + DEVICE_ID;
+  bool ok;
+  if (strlen(MQTT_USER) > 0) {
+    ok = mqtt.connect(clientId.c_str(), MQTT_USER, MQTT_PASS);
+  } else {
+    ok = mqtt.connect(clientId.c_str());
+  }
+  if (ok) {
+    Serial.println(" OK");
+  } else {
     Serial.print(" fail ");
     Serial.println(mqtt.state());
-    delay(3000);
+  }
+}
+
+static void ensureWifiConnected() {
+  wl_status_t status = WiFi.status();
+  if (status == WL_CONNECTED) return;
+
+  unsigned long now = millis();
+  if (now - lastWifiAttemptMs > 10000) {
+    lastWifiAttemptMs = now;
+    Serial.printf("\nWiFi connect start: ssid=\"%s\" status=%s\n", WIFI_SSID, wifiStatusText(status));
+    WiFi.disconnect(true, true);
+    delay(100);
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  }
+
+  if (now - lastWifiDotMs > 500) {
+    lastWifiDotMs = now;
+    Serial.print(".");
+  }
+
+  if (status == WL_CONNECTED) {
+    Serial.println("\nWiFi OK: " + WiFi.localIP().toString());
+  }
+}
+
+static const char* wifiStatusText(wl_status_t status) {
+  switch (status) {
+    case WL_IDLE_STATUS: return "IDLE";
+    case WL_NO_SSID_AVAIL: return "NO_SSID";
+    case WL_SCAN_COMPLETED: return "SCAN_DONE";
+    case WL_CONNECTED: return "CONNECTED";
+    case WL_CONNECT_FAILED: return "CONNECT_FAILED";
+    case WL_CONNECTION_LOST: return "CONNECTION_LOST";
+    case WL_DISCONNECTED: return "DISCONNECTED";
+    default: return "UNKNOWN";
   }
 }
