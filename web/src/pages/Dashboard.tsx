@@ -19,6 +19,8 @@ import {
 import { useHardwareHealth } from "../hooks/useHardwareHealth";
 import { DEVICE_ID } from "../lib/firebase";
 
+const TELEMETRY_STALE_MS = 240_000;
+
 export function Dashboard() {
   const { data: latest, loading, error } = useLatest();
   const { data: history, loading: historyLoading } = useHistory(80);
@@ -51,7 +53,7 @@ export function Dashboard() {
   const pagedHistory = paginate(historyNewestFirst, historyPage);
   const now = Date.now();
   const latestAgeMs = latest ? Math.abs(now - latest.ts) : Number.POSITIVE_INFINITY;
-  const hasFreshTelemetry = latest != null && latestAgeMs <= 120_000;
+  const hasFreshTelemetry = latest != null && latestAgeMs <= TELEMETRY_STALE_MS;
   const lastSeenText =
     latest != null ? new Date(latest.ts).toLocaleString() : "No telemetry received yet";
   const visibleLatest = hasFreshTelemetry ? latest : null;

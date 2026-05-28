@@ -23,7 +23,7 @@
 #define LCD_ROWS        2
 
 // Sampling
-#define TELEMETRY_INTERVAL_MS  2000
+#define TELEMETRY_INTERVAL_MS  180000
 #define ADC_SAMPLES            10
 
 // Thresholds (match packages/shared DEFAULT_THRESHOLDS / standalone sketch)
