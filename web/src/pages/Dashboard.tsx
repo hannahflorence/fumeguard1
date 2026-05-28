@@ -4,7 +4,6 @@ import { HardwareHealth } from "../components/HardwareHealth";
 import { HistoryTable } from "../components/HistoryTable";
 import { MetricCard } from "../components/MetricCard";
 import { Pagination, paginate, totalPages } from "../components/Pagination";
-import { SessionSummary } from "../components/SessionSummary";
 import { StatusBadge } from "../components/StatusBadge";
 import { SystemStatus } from "../components/SystemStatus";
 import { TrendCharts } from "../components/TrendCharts";
@@ -12,7 +11,6 @@ import {
   useFilteredHistory,
   useHistory,
   useLatest,
-  useSessions,
 } from "../hooks/useRealtimeData";
 import { useHardwareHealth } from "../hooks/useHardwareHealth";
 import { DEVICE_ID } from "../lib/firebase";
@@ -22,7 +20,6 @@ const TELEMETRY_STALE_MS = 240_000;
 export function Dashboard() {
   const { data: latest, loading, error } = useLatest();
   const { data: history, loading: historyLoading } = useHistory(80);
-  const { data: sessions, loading: sessionsLoading } = useSessions();
   const hardwareHealth = useHardwareHealth(latest, loading, error);
 
   const [dateFrom, setDateFrom] = useState("");
@@ -118,8 +115,6 @@ export function Dashboard() {
         <div>{!historyLoading && <TrendCharts history={history} />}</div>
         <HardwareHealth health={hardwareHealth} />
       </section>
-
-      <SessionSummary sessions={sessions} loading={sessionsLoading} />
 
       <section>
         <Card className="flex flex-col">

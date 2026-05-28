@@ -85,52 +85,11 @@ export function createMqttHandlers(db: admin.database.Database) {
       const interval =
         thresholds.historyIntervalMs ?? config.historyIntervalMs;
       const lastWrite = lastHistoryWrite.get(deviceId) ?? 0;
-      const shouldWriteHistory =
-        processed.reading.ts - lastWrite >= interval ||
-        processed.sessionStarted ||
-        processed.sessionEnded;
+      const shouldWriteHistory = processed.reading.ts - lastWrite >= interval;
 
       if (shouldWriteHistory) {
         await db.ref(`devices/${deviceId}/history`).push(processed.reading);
         lastHistoryWrite.set(deviceId, processed.reading.ts);
-      }
-
-      if (processed.sessionStarted && processed.sessionId) {
-        await db.ref(`devices/${deviceId}/sessions/${processed.sessionId}`).set({
-          sessionId: processed.sessionId,
-          deviceId,
-          startedAt: processed.reading.ts,
-          endedAt: null,
-          peakGasPpm: processed.reading.gasPpm,
-          peakDustUgM3: processed.reading.dustUgM3,
-          finalCei: processed.reading.cei,
-          status: processed.reading.status,
-          sampleCount: 1,
-        });
-      }
-
-      if (processed.sessionId && !processed.sessionEnded) {
-        await db
-          .ref(`devices/${deviceId}/sessions/${processed.sessionId}`)
-          .update({
-            peakGasPpm: state.sessionPeakGas,
-            peakDustUgM3: state.sessionPeakDust,
-            finalCei: processed.reading.cei,
-            status: processed.reading.status,
-            sampleCount: state.sessionSampleCount,
-          });
-      }
-
-      if (processed.sessionEnded && processed.sessionSummary) {
-        const s = processed.sessionSummary;
-        await db.ref(`devices/${deviceId}/sessions/${s.sessionId}`).update({
-          endedAt: s.endedAt,
-          peakGasPpm: s.peakGasPpm,
-          peakDustUgM3: s.peakDustUgM3,
-          finalCei: s.finalCei,
-          status: s.status,
-          sampleCount: s.sampleCount,
-        });
       }
     },
   };
