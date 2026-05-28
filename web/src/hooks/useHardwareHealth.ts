@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 import type { LatestReading } from "@fumeguard/shared";
 
-/** Telemetry interval on device is 2s; treat older samples as disconnected */
-const STALE_MS = 15_000;
+/** Allow slower publishes / brief reconnects before showing Offline */
+const STALE_MS = 120_000;
 
 export interface HardwareHealthState {
   connected: boolean;
@@ -19,7 +19,9 @@ export function useHardwareHealth(
   return useMemo(() => {
     const now = Date.now();
     const fresh =
-      latest != null && Number.isFinite(latest.ts) && now - latest.ts < STALE_MS;
+      latest != null &&
+      Number.isFinite(latest.ts) &&
+      Math.abs(now - latest.ts) < STALE_MS;
     const connected = !loading && !error && fresh;
 
     const gasSensorOnline =

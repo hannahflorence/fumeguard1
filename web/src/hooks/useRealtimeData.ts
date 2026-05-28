@@ -6,8 +6,44 @@ import {
   query,
   ref,
 } from "firebase/database";
-import type { LatestReading, SessionRecord, StoredEvent } from "@fumeguard/shared";
+import {
+  LatestReading as LatestReadingSchema,
+  SessionRecord as SessionRecordSchema,
+  StoredEvent as StoredEventSchema,
+  type LatestReading,
+  type SessionRecord,
+  type StoredEvent,
+} from "@fumeguard/shared";
 import { db, DEVICE_ID } from "../lib/firebase";
+
+const USE_EMULATOR = import.meta.env.VITE_USE_FIREBASE_EMULATOR === "true";
+const PROJECT_ID = import.meta.env.VITE_FIREBASE_PROJECT_ID ?? "fumeguard-demo";
+const EMULATOR_HOST = import.meta.env.VITE_FIREBASE_DATABASE_EMULATOR_HOST ?? "127.0.0.1";
+const EMULATOR_PORT = Number(import.meta.env.VITE_FIREBASE_DATABASE_EMULATOR_PORT ?? 9000);
+const EMULATOR_BASE = `http://${EMULATOR_HOST}:${EMULATOR_PORT}`;
+const EMULATOR_NS = `${PROJECT_ID}-default-rtdb`;
+
+async function fetchEmulatorJson(path: string): Promise<unknown> {
+  const url = `${EMULATOR_BASE}/${path}.json?ns=${EMULATOR_NS}`;
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) throw new Error(`HTTP ${res.status} for ${path}`);
+  return (await res.json()) as unknown;
+}
+
+function normalizeLatest(value: unknown): LatestReading | null {
+  const parsed = LatestReadingSchema.safeParse(value);
+  return parsed.success ? parsed.data : null;
+}
+
+function normalizeSession(value: unknown): SessionRecord | null {
+  const parsed = SessionRecordSchema.safeParse(value);
+  return parsed.success ? parsed.data : null;
+}
+
+function normalizeEvent(value: unknown): StoredEvent | null {
+  const parsed = StoredEventSchema.safeParse(value);
+  return parsed.success ? parsed.data : null;
+}
 
 export function useLatest() {
   const [data, setData] = useState<LatestReading | null>(null);
@@ -15,11 +51,47 @@ export function useLatest() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (USE_EMULATOR) {
+      let stopped = false;
+      async function poll() {
+        try {
+          const raw = await fetchEmulatorJson(`devices/${DEVICE_ID}/latest`);
+          const normalized = normalizeLatest(raw);
+          if (!stopped) {
+            setData(normalized);
+            setLoading(false);
+            setError(null);
+          }
+        } catch (err) {
+          if (!stopped) {
+            setLoading(false);
+            setError(err instanceof Error ? err.message : String(err));
+          }
+        }
+      }
+      void poll();
+      const timer = window.setInterval(() => {
+        void poll();
+      }, 3000);
+      return () => {
+        stopped = true;
+        window.clearInterval(timer);
+      };
+    }
+
     const r = ref(db, `devices/${DEVICE_ID}/latest`);
+
     const unsub = onValue(
       r,
       (snap) => {
-        setData(snap.exists() ? (snap.val() as LatestReading) : null);
+        if (!snap.exists()) {
+          setData(null);
+          setLoading(false);
+          setError(null);
+          return;
+        }
+        const normalized = normalizeLatest(snap.val());
+        setData(normalized);
         setLoading(false);
         setError(null);
       },
@@ -39,13 +111,47 @@ export function useHistory(limit = 60) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (USE_EMULATOR) {
+      let stopped = false;
+      async function poll() {
+        try {
+          const raw = await fetchEmulatorJson(`devices/${DEVICE_ID}/history`);
+          const points: HistoryPoint[] = [];
+          if (raw && typeof raw === "object") {
+            for (const [id, value] of Object.entries(raw as Record<string, unknown>)) {
+              const normalized = normalizeLatest(value);
+              if (!normalized) continue;
+              points.push({ id, ...normalized });
+            }
+          }
+          points.sort((a, b) => a.ts - b.ts);
+          const sliced = points.slice(Math.max(0, points.length - limit));
+          if (!stopped) {
+            setData(sliced);
+            setLoading(false);
+          }
+        } catch {
+          if (!stopped) setLoading(false);
+        }
+      }
+      void poll();
+      const timer = window.setInterval(() => {
+        void poll();
+      }, 4000);
+      return () => {
+        stopped = true;
+        window.clearInterval(timer);
+      };
+    }
+
     const r = ref(db, `devices/${DEVICE_ID}/history`);
     const q = query(r, orderByChild("ts"), limitToLast(limit));
     const unsub = onValue(q, (snap) => {
       const points: HistoryPoint[] = [];
       snap.forEach((child) => {
-        const v = child.val() as LatestReading;
-        points.push({ id: child.key!, ...v });
+        const normalized = normalizeLatest(child.val());
+        if (!normalized || !child.key) return;
+        points.push({ id: child.key, ...normalized });
       });
       points.sort((a, b) => a.ts - b.ts);
       setData(points);
@@ -66,11 +172,45 @@ export function useSessions() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (USE_EMULATOR) {
+      let stopped = false;
+      async function poll() {
+        try {
+          const raw = await fetchEmulatorJson(`devices/${DEVICE_ID}/sessions`);
+          const list: SessionRecord[] = [];
+          if (raw && typeof raw === "object") {
+            for (const value of Object.values(raw as Record<string, unknown>)) {
+              const normalized = normalizeSession(value);
+              if (!normalized) continue;
+              list.push(normalized);
+            }
+          }
+          list.sort((a, b) => (b.startedAt ?? 0) - (a.startedAt ?? 0));
+          if (!stopped) {
+            setData(list);
+            setLoading(false);
+          }
+        } catch {
+          if (!stopped) setLoading(false);
+        }
+      }
+      void poll();
+      const timer = window.setInterval(() => {
+        void poll();
+      }, 5000);
+      return () => {
+        stopped = true;
+        window.clearInterval(timer);
+      };
+    }
+
     const r = ref(db, `devices/${DEVICE_ID}/sessions`);
     const unsub = onValue(r, (snap) => {
       const list: SessionRecord[] = [];
       snap.forEach((child) => {
-        list.push(child.val() as SessionRecord);
+        const normalized = normalizeSession(child.val());
+        if (!normalized) return;
+        list.push(normalized);
       });
       list.sort((a, b) => (b.startedAt ?? 0) - (a.startedAt ?? 0));
       setData(list);
@@ -86,12 +226,44 @@ export function useEvents(limit = 20) {
   const [data, setData] = useState<(StoredEvent & { id: string })[]>([]);
 
   useEffect(() => {
+    if (USE_EMULATOR) {
+      let stopped = false;
+      async function poll() {
+        try {
+          const raw = await fetchEmulatorJson(`devices/${DEVICE_ID}/events`);
+          const list: (StoredEvent & { id: string })[] = [];
+          if (raw && typeof raw === "object") {
+            for (const [id, value] of Object.entries(raw as Record<string, unknown>)) {
+              const normalized = normalizeEvent(value);
+              if (!normalized) continue;
+              list.push({ id, ...normalized });
+            }
+          }
+          list.sort((a, b) => b.ts - a.ts);
+          const sliced = list.slice(0, limit);
+          if (!stopped) setData(sliced);
+        } catch {
+          // Ignore poll errors and keep previous data.
+        }
+      }
+      void poll();
+      const timer = window.setInterval(() => {
+        void poll();
+      }, 4000);
+      return () => {
+        stopped = true;
+        window.clearInterval(timer);
+      };
+    }
+
     const r = ref(db, `devices/${DEVICE_ID}/events`);
     const q = query(r, orderByChild("ts"), limitToLast(limit));
     const unsub = onValue(q, (snap) => {
       const list: (StoredEvent & { id: string })[] = [];
       snap.forEach((child) => {
-        list.push({ id: child.key!, ...(child.val() as StoredEvent) });
+        const normalized = normalizeEvent(child.val());
+        if (!normalized || !child.key) return;
+        list.push({ id: child.key, ...normalized });
       });
       list.sort((a, b) => b.ts - a.ts);
       setData(list);
