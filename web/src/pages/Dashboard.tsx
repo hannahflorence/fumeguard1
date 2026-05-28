@@ -180,7 +180,9 @@ export function Dashboard() {
       </section>
 
       <section className="grid grid-cols-1 items-stretch gap-6 overflow-visible lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
-        <div>{!historyLoading && <TrendCharts history={history} />}</div>
+        <div>
+          <TrendCharts history={historyLoading ? [] : history} />
+        </div>
         <HardwareHealth health={hardwareHealth} />
       </section>
 
