@@ -34,14 +34,15 @@ export function TrendCharts({ history }: { history: HistoryPoint[] }) {
     dust: h.dustUgM3,
     cei: h.cei,
   }));
-
-  if (chartData.length === 0) {
-    return (
-      <Card className="p-8 text-center font-semibold tracking-wide text-slate-700">
-        Waiting for sensor history...
-      </Card>
-    );
-  }
+  const hasData = chartData.length > 0;
+  const displayData = hasData
+    ? chartData
+    : [{ time: "—", gas: null, dust: null, cei: null }] as Array<{
+        time: string;
+        gas: number | null;
+        dust: number | null;
+        cei: number | null;
+      }>;
 
   return (
     <Card className="p-4 sm:p-5">
@@ -50,7 +51,7 @@ export function TrendCharts({ history }: { history: HistoryPoint[] }) {
       </h3>
       <div className="h-[220px] w-full sm:h-[280px]">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData} margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
+          <LineChart data={displayData} margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
             <CartesianGrid strokeDasharray="2 4" stroke="#e2e8f0" opacity={0.8} />
             <XAxis dataKey="time" stroke="#475569" tick={{ fontSize: 11 }} minTickGap={24} />
             <YAxis stroke="#475569" tick={{ fontSize: 11 }} width={44} />
@@ -64,6 +65,7 @@ export function TrendCharts({ history }: { history: HistoryPoint[] }) {
               strokeWidth={2.5}
               dot={false}
               activeDot={{ r: 4 }}
+              hide={!hasData}
             />
             <Line
               type="monotone"
@@ -73,6 +75,7 @@ export function TrendCharts({ history }: { history: HistoryPoint[] }) {
               strokeWidth={2.5}
               dot={false}
               activeDot={{ r: 4 }}
+              hide={!hasData}
             />
             <Line
               type="monotone"
@@ -82,10 +85,16 @@ export function TrendCharts({ history }: { history: HistoryPoint[] }) {
               strokeWidth={2.5}
               dot={false}
               activeDot={{ r: 4 }}
+              hide={!hasData}
             />
           </LineChart>
         </ResponsiveContainer>
       </div>
+      {!hasData && (
+        <p className="mt-2 text-center text-sm font-medium tracking-wide text-slate-600">
+          Waiting for sensor history...
+        </p>
+      )}
     </Card>
   );
 }
