@@ -48,7 +48,7 @@ app.get("/health", (_req, res) => {
   });
 });
 
-app.listen(config.port, () => {
+const server = app.listen(config.port, () => {
   console.log(`[server] Health http://localhost:${config.port}/health`);
   if (config.useFirebaseEmulator) {
     console.log(
@@ -56,3 +56,25 @@ app.listen(config.port, () => {
     );
   }
 });
+
+server.on("error", (err: NodeJS.ErrnoException) => {
+  if (err.code === "EADDRINUSE") {
+    console.error(
+      `[server] Port ${config.port} is already in use. Stop the other server first:\n` +
+        `  Get-NetTCPConnection -LocalPort ${config.port} | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }`
+    );
+  } else {
+    console.error("[server] Listen error:", err.message);
+  }
+  process.exit(1);
+});
+
+function shutdown(signal: string) {
+  console.log(`[server] ${signal} — shutting down`);
+  mqttClient.end(true);
+  server.close(() => process.exit(0));
+  setTimeout(() => process.exit(0), 3000).unref();
+}
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
