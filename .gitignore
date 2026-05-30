@@ -25,3 +25,4 @@ firmware/.pio/
 
 # OS
 Thumbs.db
+.vercel

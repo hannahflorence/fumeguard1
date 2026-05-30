@@ -11,6 +11,7 @@ interface ImportMetaEnv {
   readonly VITE_FIREBASE_AUTH_EMULATOR_HOST: string;
   readonly VITE_FIREBASE_AUTH_EMULATOR_PORT: string;
   readonly VITE_DEVICE_ID: string;
+  readonly VITE_BRIDGE_HEALTH_URL?: string;
 }
 
 interface ImportMeta {

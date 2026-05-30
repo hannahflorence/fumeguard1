@@ -1,0 +1,9 @@
+firmware/
+server/
+tools/
+docs/
+infra/
+.firebase/
+*.log
+**/.pio/
+**/node_modules/.cache/

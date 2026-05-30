@@ -18,7 +18,8 @@ export function getFirebaseApp(): admin.app.App {
       projectId: config.firebaseProjectId,
       databaseURL: config.useFirebaseEmulator
         ? `http://${config.firebaseDatabaseEmulatorHost}?ns=${config.firebaseProjectId}-default-rtdb`
-        : `https://${config.firebaseProjectId}-default-rtdb.firebaseio.com`,
+        : config.firebaseDatabaseUrl ??
+          `https://${config.firebaseProjectId}-default-rtdb.firebaseio.com`,
     });
   } else {
     app = admin.app();

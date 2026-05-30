@@ -121,20 +121,28 @@ export function Dashboard() {
           <p className="font-semibold text-slate-600">MQTT Bridge</p>
           <p
             className={`font-bold ${
-              bridgeHealth.loading
-                ? "text-slate-500"
-                : bridgeHealth.mqttConnected
+              !bridgeHealth.enabled
+                ? hasFreshTelemetry
                   ? "text-emerald-700"
-                  : "text-red-700"
+                  : "text-slate-500"
+                : bridgeHealth.loading
+                  ? "text-slate-500"
+                  : bridgeHealth.mqttConnected
+                    ? "text-emerald-700"
+                    : "text-red-700"
             }`}
           >
-            {bridgeHealth.loading
-              ? "Checking..."
-              : bridgeHealth.mqttConnected
-                ? "Connected"
-                : bridgeHealth.error
-                  ? "Server offline"
-                  : "Disconnected"}
+            {!bridgeHealth.enabled
+              ? hasFreshTelemetry
+                ? "Active"
+                : "Cloud hosted"
+              : bridgeHealth.loading
+                ? "Checking..."
+                : bridgeHealth.mqttConnected
+                  ? "Connected"
+                  : bridgeHealth.error
+                    ? "Server offline"
+                    : "Disconnected"}
           </p>
         </div>
         <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">

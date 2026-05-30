@@ -1,13 +1,34 @@
 import { useEffect, useState } from "react";
 
-const BRIDGE_HEALTH_URL =
-  import.meta.env.VITE_BRIDGE_HEALTH_URL ?? "http://localhost:3001/health";
+function resolveBridgeHealthUrl(): string {
+  const configured = import.meta.env.VITE_BRIDGE_HEALTH_URL?.trim() ?? "";
+  const url =
+    configured || (import.meta.env.DEV ? "http://localhost:3001/health" : "");
+  if (!url) return "";
+
+  try {
+    const parsed = new URL(url);
+    const targetsLocalhost =
+      parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
+    const pageIsLocalhost =
+      typeof window !== "undefined" &&
+      (window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1");
+    // localhost:3001 is only reachable from localhost dev — not from Vercel
+    if (targetsLocalhost && !pageIsLocalhost) return "";
+  } catch {
+    return "";
+  }
+
+  return url;
+}
 
 export interface BridgeHealth {
   ok: boolean;
   mqttConnected: boolean;
   loading: boolean;
   error: string | null;
+  enabled: boolean;
 }
 
 export function useBridgeHealth(): BridgeHealth {
@@ -16,14 +37,29 @@ export function useBridgeHealth(): BridgeHealth {
     mqttConnected: false,
     loading: true,
     error: null,
+    enabled: false,
   });
 
   useEffect(() => {
+    const bridgeHealthUrl = resolveBridgeHealthUrl();
+    const enabled = bridgeHealthUrl.length > 0;
+
+    if (!enabled) {
+      setState({
+        ok: false,
+        mqttConnected: false,
+        loading: false,
+        error: null,
+        enabled: false,
+      });
+      return;
+    }
+
     let stopped = false;
 
     async function poll() {
       try {
-        const res = await fetch(BRIDGE_HEALTH_URL, { cache: "no-store" });
+        const res = await fetch(bridgeHealthUrl, { cache: "no-store" });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const body = (await res.json()) as { ok?: boolean; mqttConnected?: boolean };
         if (!stopped) {
@@ -32,6 +68,7 @@ export function useBridgeHealth(): BridgeHealth {
             mqttConnected: body.mqttConnected === true,
             loading: false,
             error: null,
+            enabled: true,
           });
         }
       } catch (err) {
@@ -41,6 +78,7 @@ export function useBridgeHealth(): BridgeHealth {
             mqttConnected: false,
             loading: false,
             error: err instanceof Error ? err.message : String(err),
+            enabled: true,
           });
         }
       }
