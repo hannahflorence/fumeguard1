@@ -12,6 +12,7 @@ import {
   useLatest,
 } from "../hooks/useRealtimeData";
 import { useHardwareHealth } from "../hooks/useHardwareHealth";
+import { useBridgeHealth } from "../hooks/useBridgeHealth";
 import { DEVICE_ID } from "../lib/firebase";
 
 const TELEMETRY_STALE_MS = 240_000;
@@ -28,6 +29,7 @@ function formatAge(ms: number): string {
 export function Dashboard() {
   const { data: latest, loading, error } = useLatest();
   const { data: history, loading: historyLoading } = useHistory(80);
+  const bridgeHealth = useBridgeHealth();
   const hardwareHealth = useHardwareHealth(latest, loading, error);
 
   const [dateFrom, setDateFrom] = useState("");
@@ -117,8 +119,22 @@ export function Dashboard() {
         </div>
         <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
           <p className="font-semibold text-slate-600">MQTT Bridge</p>
-          <p className={`font-bold ${!error ? "text-emerald-700" : "text-red-700"}`}>
-            {!error ? "Connected" : "Issue"}
+          <p
+            className={`font-bold ${
+              bridgeHealth.loading
+                ? "text-slate-500"
+                : bridgeHealth.mqttConnected
+                  ? "text-emerald-700"
+                  : "text-red-700"
+            }`}
+          >
+            {bridgeHealth.loading
+              ? "Checking..."
+              : bridgeHealth.mqttConnected
+                ? "Connected"
+                : bridgeHealth.error
+                  ? "Server offline"
+                  : "Disconnected"}
           </p>
         </div>
         <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
@@ -146,7 +162,18 @@ export function Dashboard() {
       )}
       {!loading && !hasFreshTelemetry && (
         <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold tracking-wide text-amber-800 shadow-[0_4px_15px_rgba(0,0,0,0.06)]">
-          No fresh telemetry from device. Last seen: {lastSeenText}. Check ESP32 Wi-Fi connection.
+          {latest == null ? (
+            <>
+              No telemetry in Firebase yet for <code className="font-mono">{DEVICE_ID}</code>.
+              Ensure emulators, <code className="font-mono">npm run dev:server</code>, and the ESP32
+              are running. First publish can take up to 3 minutes after boot.
+            </>
+          ) : (
+            <>
+              No fresh telemetry from device. Last seen: {lastSeenText}. Wait for the next ESP32
+              publish (every 3 minutes) or check Wi-Fi / MQTT on the board.
+            </>
+          )}
         </div>
       )}
 

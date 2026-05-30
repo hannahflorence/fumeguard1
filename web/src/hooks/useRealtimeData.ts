@@ -27,8 +27,13 @@ async function fetchEmulatorJson(path: string): Promise<unknown> {
 }
 
 function normalizeLatest(value: unknown): LatestReading | null {
+  if (value == null) return null;
   const parsed = LatestReadingSchema.safeParse(value);
-  return parsed.success ? parsed.data : null;
+  if (!parsed.success) {
+    console.warn("[FumeGuard] Invalid latest reading from Firebase:", parsed.error.flatten());
+    return null;
+  }
+  return parsed.data;
 }
 
 export function useLatest() {

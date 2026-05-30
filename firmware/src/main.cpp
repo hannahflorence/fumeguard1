@@ -8,7 +8,7 @@
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 #include <Wire.h>
-#include <LiquidCrystal_I2C.h>
+#include <U8g2lib.h>
 #include <time.h>
 
 #include "config.h"
@@ -34,7 +34,6 @@
 static WiFiClient wifiClient;
 static WiFiClientSecure secureWifiClient;
 static PubSubClient mqtt;
-static LiquidCrystal_I2C lcd(LCD_I2C_ADDR, LCD_COLS, LCD_ROWS);
 
 static float gasValue = 0;
 static float dustValue = 0;
@@ -48,20 +47,81 @@ static String lastStatus = "safe";
 static unsigned long lastWifiAttemptMs = 0;
 static unsigned long lastWifiDotMs = 0;
 static unsigned long lastMqttAttemptMs = 0;
+static bool ntpConfigured = false;
 static bool ntpSynced = false;
+static unsigned long lastNtpAttemptMs = 0;
 
 static float readGasRaw();
 static float readDustRaw();
 static float computeCeiScore(float gas, float dust);
 static String deriveStatus(float gas, float dust, float ceiVal);
 static void updateActuators(const String& status);
-static void updateLcd(float gas, float dust, float ceiVal, const String& status);
 static void publishTelemetry();
 static void publishEvent(const char* type, const char* message);
 static void reconnectMqtt();
 static long long nowEpochMs();
 static void ensureWifiConnected();
 static const char* wifiStatusText(wl_status_t status);
+
+// ---------------------------------------------------------------------------
+// OLED display (U8g2 / SH1106 128x64, I2C on SDA=21 SCL=22)
+// ---------------------------------------------------------------------------
+
+static U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(
+    U8G2_R0, U8X8_PIN_NONE, I2C_SCL, I2C_SDA);
+static bool oledReady = false;
+
+static bool initOled() {
+  Wire.begin(I2C_SDA, I2C_SCL);
+  u8g2.setI2CAddress(OLED_I2C_ADDR * 2);
+  if (!u8g2.begin()) {
+    Serial.println("OLED init failed — check wiring and I2C address (0x3C/0x3D)");
+    return false;
+  }
+  return true;
+}
+
+static void drawOledHeader() {
+  u8g2.setFont(u8g2_font_6x10_tf);
+  u8g2.drawStr(25, 10, "FUME GUARD");
+}
+
+static void showOledBootMessage(const char* message) {
+  if (!oledReady) return;
+
+  u8g2.clearBuffer();
+  drawOledHeader();
+  u8g2.setCursor(20, 25);
+  u8g2.print(message);
+  u8g2.sendBuffer();
+}
+
+static void updateOled(float gas, float dust, float ceiVal, const String& airStatus) {
+  if (!oledReady) return;
+
+  u8g2.clearBuffer();
+  drawOledHeader();
+
+  u8g2.setCursor(0, 25);
+  u8g2.print("Gas:");
+  u8g2.print((int)gas);
+
+  u8g2.setCursor(0, 37);
+  u8g2.print("Dust:");
+  u8g2.print((int)dust);
+
+  u8g2.setCursor(0, 49);
+  u8g2.print("CEI:");
+  u8g2.print((int)ceiVal);
+
+  u8g2.setCursor(0, 61);
+  u8g2.print("Status:");
+  u8g2.print(airStatus.c_str());
+
+  u8g2.sendBuffer();
+}
+
+// ---------------------------------------------------------------------------
 
 static float mapRange(float value, float inMin, float inMax, float outMin, float outMax) {
   value = constrain(value, inMin, inMax);
@@ -90,12 +150,10 @@ void setup() {
   digitalWrite(PIN_RED_LED, LOW);
   digitalWrite(PIN_BUZZER, LOW);
 
-  Wire.begin(I2C_SDA, I2C_SCL);
-  lcd.init();
-  lcd.backlight();
-  lcd.print("FumeGuard");
-  lcd.setCursor(0, 1);
-  lcd.print("Starting...");
+  oledReady = initOled();
+  if (oledReady) {
+    showOledBootMessage("Starting...");
+  }
 
   WiFi.mode(WIFI_STA);
   WiFi.setSleep(false);
@@ -119,18 +177,28 @@ void setup() {
     reconnectMqtt();
   }
 
-  lcd.clear();
-  lcd.print("Boot complete");
+  if (oledReady) {
+    showOledBootMessage("Boot complete");
+  }
 }
 
 void loop() {
   ensureWifiConnected();
 
   if (WiFi.status() == WL_CONNECTED && !ntpSynced) {
-    configTime(0, 0, "pool.ntp.org", "time.nist.gov");
-    struct tm timeinfo;
-    ntpSynced = getLocalTime(&timeinfo, 1500);
-    Serial.println(ntpSynced ? "NTP sync OK" : "NTP sync pending");
+    if (!ntpConfigured) {
+      configTime(0, 0, "pool.ntp.org", "time.nist.gov");
+      ntpConfigured = true;
+    }
+    unsigned long now = millis();
+    if (now - lastNtpAttemptMs >= 30000) {
+      lastNtpAttemptMs = now;
+      struct tm timeinfo;
+      if (getLocalTime(&timeinfo, 5000)) {
+        ntpSynced = true;
+        Serial.println("NTP sync OK");
+      }
+    }
   }
 
   if (WiFi.status() == WL_CONNECTED && !mqtt.connected()) {
@@ -150,7 +218,7 @@ void loop() {
 
   String status = deriveStatus(gasValue, dustValue, cei);
   updateActuators(status);
-  updateLcd(gasValue, dustValue, cei, status);
+  updateOled(gasValue, dustValue, cei, status);
 
   if (status != lastStatus) {
     if (status == "hazardous") {
@@ -244,13 +312,6 @@ static void updateActuators(const String& status) {
   digitalWrite(PIN_RELAY, fanOn ? LOW : HIGH);
 }
 
-static void updateLcd(float gas, float dust, float ceiVal, const String& status) {
-  lcd.setCursor(0, 0);
-  lcd.printf("G:%4.0f D:%4.0f", gas, dust);
-  lcd.setCursor(0, 1);
-  lcd.printf("C:%3.0f %-7s", ceiVal, status.c_str());
-}
-
 static void publishTelemetry() {
   String status = deriveStatus(gasValue, dustValue, cei);
 
@@ -314,8 +375,17 @@ static void reconnectMqtt() {
 }
 
 static void ensureWifiConnected() {
+  static bool wifiLogged = false;
   wl_status_t status = WiFi.status();
-  if (status == WL_CONNECTED) return;
+
+  if (status == WL_CONNECTED) {
+    if (!wifiLogged) {
+      wifiLogged = true;
+      Serial.println("\nWiFi OK: " + WiFi.localIP().toString());
+    }
+    return;
+  }
+  wifiLogged = false;
 
   unsigned long now = millis();
   if (now - lastWifiAttemptMs > 10000) {
@@ -329,10 +399,6 @@ static void ensureWifiConnected() {
   if (now - lastWifiDotMs > 500) {
     lastWifiDotMs = now;
     Serial.print(".");
-  }
-
-  if (status == WL_CONNECTED) {
-    Serial.println("\nWiFi OK: " + WiFi.localIP().toString());
   }
 }
 

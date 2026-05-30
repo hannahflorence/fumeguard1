@@ -10,17 +10,15 @@
 // NOTE: ESP32 Wi-Fi cannot reliably read ADC2 pins (GPIO0/2/4/12-15/25-27).
 // Move MQ-135 analog output to an ADC1 pin (GPIO32-39). We use GPIO34.
 //#define PIN_MQ135       34
-#define PIN_MQ135       13
+#define PIN_MQ135       34
 #define PIN_DUST_LED    27
 #define PIN_DUST_ADC    35
 
 #define I2C_SDA         21
 #define I2C_SCL         22
 
-// I2C LCD (16x2) — common address 0x27
-#define LCD_I2C_ADDR    0x27
-#define LCD_COLS        16
-#define LCD_ROWS        2
+// I2C OLED (128x64 SH1106) — common address 0x3C (try 0x3D if blank)
+#define OLED_I2C_ADDR   0x3C
 
 // Sampling
 #define TELEMETRY_INTERVAL_MS  180000
