@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 import type { LatestReading } from "@fumeguard/shared";
 
-/** Allow slower publishes / brief reconnects before showing Offline */
-const STALE_MS = 240_000;
+/** Allow slower publishes / brief reconnects before showing Offline (1-min telemetry + buffer) */
+const STALE_MS = 90_000;
 
 export interface HardwareHealthState {
   connected: boolean;

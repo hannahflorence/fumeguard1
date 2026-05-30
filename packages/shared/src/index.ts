@@ -50,12 +50,12 @@ export const ThresholdsConfig = z.object({
 });
 export type ThresholdsConfig = z.infer<typeof ThresholdsConfig>;
 
-/** Matches standalone firmware: gas 1000, dust 400, CEI < 70 hazardous */
+/** Matches standalone firmware: gas 700/500, dust 400/300 (scaled), CEI < 70 hazardous */
 export const DEFAULT_THRESHOLDS: ThresholdsConfig = {
-  gasHazardPpm: 1000,
-  gasWarningPpm: 800,
+  gasHazardPpm: 700,
+  gasWarningPpm: 500,
   dustHazardUgM3: 400,
-  dustWarningUgM3: 320,
+  dustWarningUgM3: 300,
   ceiHazardBelow: 70,
   sensorAdcMax: 3000,
   idleLoadThreshold: 0.05,

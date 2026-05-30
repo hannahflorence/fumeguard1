@@ -213,7 +213,7 @@ void loop() {
   lastTelemetryMs = now;
 
   gasValue = readGasRaw();
-  dustValue = readDustRaw();
+  dustValue = readDustRaw() * DUST_READING_SCALE;
   cei = computeCeiScore(gasValue, dustValue);
 
   String status = deriveStatus(gasValue, dustValue, cei);

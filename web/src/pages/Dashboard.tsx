@@ -15,8 +15,8 @@ import { useHardwareHealth } from "../hooks/useHardwareHealth";
 import { useBridgeHealth } from "../hooks/useBridgeHealth";
 import { DEVICE_ID } from "../lib/firebase";
 
-const TELEMETRY_STALE_MS = 240_000;
-const DELAYED_TELEMETRY_MS = 600_000;
+const TELEMETRY_STALE_MS = 90_000;
+const DELAYED_TELEMETRY_MS = 180_000;
 
 function formatAge(ms: number): string {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -174,12 +174,12 @@ export function Dashboard() {
             <>
               No telemetry in Firebase yet for <code className="font-mono">{DEVICE_ID}</code>.
               Ensure emulators, <code className="font-mono">npm run dev:server</code>, and the ESP32
-              are running. First publish can take up to 3 minutes after boot.
+              are running. First publish can take up to 1 minute after boot.
             </>
           ) : (
             <>
               No fresh telemetry from device. Last seen: {lastSeenText}. Wait for the next ESP32
-              publish (every 3 minutes) or check Wi-Fi / MQTT on the board.
+              publish (every 1 minute) or check Wi-Fi / MQTT on the board.
             </>
           )}
         </div>

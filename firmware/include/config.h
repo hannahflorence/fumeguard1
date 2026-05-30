@@ -21,14 +21,15 @@
 #define OLED_I2C_ADDR   0x3C
 
 // Sampling
-#define TELEMETRY_INTERVAL_MS  180000
+#define TELEMETRY_INTERVAL_MS  60000
 #define ADC_SAMPLES            10
+#define DUST_READING_SCALE     20.0f
 
-// Thresholds (match packages/shared DEFAULT_THRESHOLDS / standalone sketch)
-#define GAS_HAZARD_RAW         1000.0f
-#define GAS_WARNING_RAW        800.0f
+// Thresholds (scaled dust = raw ADC × DUST_READING_SCALE)
+#define GAS_HAZARD_RAW         700.0f
+#define GAS_WARNING_RAW        500.0f
 #define DUST_HAZARD_RAW        400.0f
-#define DUST_WARNING_RAW       320.0f
+#define DUST_WARNING_RAW       300.0f
 #define CEI_HAZARD_BELOW       70.0f
 #define SENSOR_ADC_MAX         3000.0f
 
